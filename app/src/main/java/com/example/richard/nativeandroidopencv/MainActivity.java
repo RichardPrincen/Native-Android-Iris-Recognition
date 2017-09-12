@@ -8,8 +8,12 @@ import android.nfc.Tag;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -17,6 +21,7 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -44,8 +49,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 {
 	private Mat frameIn;
 	private Mat frameOut;
+	private Mat eyeCircleSelection;
 	private File mCascadeFile;
+	private int framesPassed;
 	private int[] irisCode;
+	private boolean IRISRECOGNITION = false;
 	private static String TAG = "MainActivity";
 	private CascadeClassifier eyes_cascade2;
 	JavaCameraView jcv;
@@ -59,11 +67,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 				case BaseLoaderCallback.SUCCESS:
 					jcv.enableView();
 					eyes_cascade2 = new CascadeClassifier("haarcascade_eye.xml");
-					try {
+					try
+					{
 						// load cascade file from application resources
 						InputStream is = getResources().openRawResource(R.raw.haarcascade_eye);
 						File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-						mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+						mCascadeFile = new File(cascadeDir, "haarcascade_eye.xml");
 						FileOutputStream os = new FileOutputStream(mCascadeFile);
 
 						byte[] buffer = new byte[4096];
@@ -80,14 +89,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 						{
 							Log.e(TAG, "Failed to load cascade classifier");
 							eyes_cascade2 = null;
-						}
-						else
+						} else
 							Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
 
 						cascadeDir.delete();
 
-					}
-					catch (IOException e)
+					} catch (IOException e)
 					{
 						e.printStackTrace();
 						Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
@@ -132,6 +139,25 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		jcv.setVisibility(JavaCameraView.VISIBLE);
 		jcv.setCvCameraViewListener(this);
 		jcv.setCameraIndex(0);
+
+		jcv.setOnTouchListener(new View.OnTouchListener()
+		{
+			@Override
+			public boolean onTouch(View v, MotionEvent event)
+			{
+				if (IRISRECOGNITION == false)
+				{
+					IRISRECOGNITION = true;
+					jcv.flashOn();
+				}
+//				else
+//				{
+//					IRISRECOGNITION = false;
+//					jcv.flashOff();
+//				}
+				return false;
+			}
+		});
 	}
 
 	/**
@@ -139,7 +165,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 	 * which is packaged with this application.
 	 */
 	public native String stringFromJNI();
-	//public native void detectIris(long addrInput, long addrOutput);
+
+	public native void detectIris(long addrInput, long addrOutput, long addrOriginal);
 	public native int[] returnHist(long addrInput);
 
 	@Override
@@ -166,8 +193,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		{
 			Log.i(TAG, "OpenCV loaded successfully.");
 			mLoader.onManagerConnected(LoaderCallbackInterface.SUCCESS);
-		}
-		else
+		} else
 		{
 			Log.i(TAG, "OpenCV load failed.");
 			OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoader);
@@ -179,7 +205,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 	{
 		frameIn = new Mat();
 		frameOut = new Mat();
-		jcv.flashOn();
+		eyeCircleSelection = new Mat();
+		framesPassed = 0;
 	}
 
 	@Override
@@ -187,15 +214,41 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 	{
 		frameIn.release();
 		frameOut.release();
-		jcv.flashOff();
+		eyeCircleSelection.release();
 	}
 
 	@Override
 	public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
 	{
 		frameIn = inputFrame.rgba();
-		frameOut = findEye(frameIn);
-		return frameOut;
+		Mat frameInNocircles = frameIn.clone();
+		Point circleRCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.3);
+		Point circleLCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.7);
+		int radius = (int)Math.round(frameIn.width()*0.15);
+		Imgproc.circle(frameIn, circleRCenter, radius, new Scalar(255, 0, 0), 5);
+		Imgproc.circle(frameIn, circleLCenter, radius, new Scalar(255, 0, 0), 5);
+
+		Rect eyeRegion = new Rect((int)Math.round(frameIn.width()*0.25)-radius, (int)Math.round(frameIn.height()*0.3)-radius, radius*2, radius*2);
+		Mat eyeCircleSelection = frameInNocircles.submat(eyeRegion);
+		//changeImageView(eyeCircleSelection);
+
+		if (IRISRECOGNITION == false)
+			return frameIn;
+
+		if (framesPassed == 20)
+		{
+			framesPassed = 0;
+			jcv.flashOff();
+			IRISRECOGNITION = false;
+			frameOut = eyeCircleSelection.clone();
+			detectIris(eyeCircleSelection.getNativeObjAddr(),frameOut.getNativeObjAddr(), frameIn.getNativeObjAddr());
+			changeImageView(frameOut);
+			frameOut.release();
+		}
+		framesPassed++;
+
+		frameInNocircles.release();
+		return frameIn;
 	}
 
 	public Mat findEye(Mat input)
@@ -204,12 +257,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		Imgproc.cvtColor(input, gray, Imgproc.COLOR_BGR2GRAY);
 		//equalizeHist(gray, gray);
 
-		float height = (float)gray.size().height;
-		long minSize = Math.round(height * 0.15);
+		float height = (float) gray.size().height;
+		long minSize = Math.round(height * 0.1);
+		long maxSize = Math.round(height * 0.2);
 
 		MatOfRect rectOfEyes = new MatOfRect();
 
-		eyes_cascade2.detectMultiScale(gray, rectOfEyes, 1.1, 2, 0 | Objdetect.CASCADE_SCALE_IMAGE , new Size(minSize, minSize), new Size(minSize, minSize)); //
+		eyes_cascade2.detectMultiScale(gray, rectOfEyes, 1.1, 2, 0 | Objdetect.CASCADE_SCALE_IMAGE, new Size(minSize, minSize), new Size(maxSize, maxSize)); //
 
 		Rect eyeRegion;
 		Rect[] eyes = rectOfEyes.toArray();
@@ -220,29 +274,85 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		else
 		{
 			if (eyes[0].x > eyes[1].x)
-				eyeRegion = eyes[0];//Rect(eyes[0].x, eyes[0].y, eyes[0].width, eyes[0].height);
+				eyeRegion = eyes[0];
 			else
-				eyeRegion = eyes[1];//Rect(eyes[1].x, eyes[1].y, eyes[1].width, eyes[1].height);
+				eyeRegion = eyes[1];
 		}
 
 		for (int x = 0; x < eyes.length; x++)
 		{
 			Imgproc.rectangle(input, new Point(eyes[x].x, eyes[x].y), new Point(eyes[x].x + eyes[x].width, eyes[x].y + eyes[x].height), new Scalar(255, 0, 0, 255), 3);
 		}
+
 		Mat eye = gray.submat(eyeRegion);
-		irisCode = returnHist(eye.getNativeObjAddr());
+		changeImageView(eye);
+		//irisCode = returnHist(eye.getNativeObjAddr());
 		return input;
+	}
+
+	public Mat findCircles(Mat input)
+	{
+		Mat gray = new Mat();
+		Imgproc.cvtColor(input, gray, Imgproc.COLOR_BGR2GRAY);
+		Mat thresholded = new Mat();
+		Mat circles = new Mat();
+
+		Imgproc.threshold(gray, thresholded, 70, 255, Imgproc.THRESH_BINARY_INV);
+		Mat floodfilled = thresholded.clone();
+		Imgproc.floodFill(thresholded, floodfilled, new Point(0, 0), new Scalar(255));
+
+		Core.bitwise_not(floodfilled, floodfilled);
+
+		Core.add(thresholded, floodfilled, thresholded);
+
+		Imgproc.GaussianBlur(thresholded, thresholded, new Size(9, 9), 3, 3);
+		Imgproc.HoughCircles(thresholded, circles, Imgproc.CV_HOUGH_GRADIENT,
+				2.0, thresholded.rows() / 8, 255, 30, 0, 0);
+
+		if (circles.cols() > 0)
+			for (int x = 0; x < circles.cols(); x++)
+			{
+				double vCircle[] = circles.get(0,x);
+
+				if (vCircle == null)
+					break;
+
+				Point pt = new Point(Math.round(vCircle[0]), Math.round(vCircle[1]));
+				int radius = (int)Math.round(vCircle[2]);
+
+				Imgproc.circle(input, pt, radius, new Scalar(0,255,0), -1);
+			}
+		circles.release();
+		thresholded.release();
+		return input;
+	}
+
+	public void changeImageView(Mat input)
+	{
+		final Bitmap bm = Bitmap.createBitmap(input.cols(), input.rows(),Bitmap.Config.ARGB_8888);
+		Utils.matToBitmap(input, bm);
+
+		// find the imageview and draw it!
+		final ImageView iv = (ImageView) findViewById(R.id.imageView);
+		runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run() {
+				iv.setImageBitmap(bm);
+			}
+		});
 	}
 
 	public double chiSquared(int[] hist1, int[] hist2)
 	{
-		double [] normalizedHist1 = new double[59];
-		double [] normalizedHist2 = new double[59];;
+		double[] normalizedHist1 = new double[59];
+		double[] normalizedHist2 = new double[59];
+		;
 
 		for (int i = 0; i < 58; i++)
 		{
-			normalizedHist1[i] = (double)hist1[i]/hist1[58];
-			normalizedHist2[i] = (double)hist2[i]/hist2[58];
+			normalizedHist1[i] = (double) hist1[i] / hist1[58];
+			normalizedHist2[i] = (double) hist2[i] / hist2[58];
 		}
 
 		normalizedHist1[58] = 1.0;

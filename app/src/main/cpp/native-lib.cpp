@@ -12,27 +12,17 @@ Java_com_example_richard_nativeandroidopencv_MainActivity_stringFromJNI(
 }
 
 extern "C"
-void JNICALL Java_com_example_richard_nativeandroidopencv_MainActivity_detectIris(JNIEnv *env, jlong addrInput, jlong addrOutput)
+void JNICALL Java_com_example_richard_nativeandroidopencv_MainActivity_detectIris(JNIEnv *env, jobject instance, jlong addrInput, jlong addrOutput, jlong addrOriginal)
 {
-
     Mat& currentImage = *(Mat*)addrInput;
-
     Mat& output = *(Mat*)addrOutput;
+    Mat& original = *(Mat*)addrOriginal;
 
-    Mat input = currentImage;
-    Mat unprocessed = currentImage;
-
-    output = currentImage;
-
-    //Find and extract iris
-    //currentImage = findAndExtractIris(currentImage, unprocessed, input);
-
-    //Normalize
-    //currentImage = normalize(currentImage, pupilx, pupily, pupilRadius, irisRadius);
-
-    //destroyAllWindows();
-
-    //return currentImage;
+    Mat unprocessed = currentImage.clone();
+    cvtColor(currentImage, currentImage, COLOR_BGR2GRAY);
+    output = findAndExtractIris(currentImage, unprocessed, original);
+    currentImage.release();
+    original.release();
 }
 
 extern "C"
@@ -55,9 +45,6 @@ JNIEXPORT jintArray JNICALL Java_com_example_richard_nativeandroidopencv_MainAct
     //Find and extract iris
     currentImage = findAndExtractIris(currentImage, unprocessed, input);
 
-    //Normalize
-    currentImage = normalize(currentImage, pupilx, pupily, pupilRadius, irisRadius);
-
     // fill a temp structure to use to populate the java int array
     vector<int> histogram = LBP(currentImage);
     jint fill[59];
@@ -70,88 +57,48 @@ JNIEXPORT jintArray JNICALL Java_com_example_richard_nativeandroidopencv_MainAct
     return javaHistogram;
 }
 
-Mat blurImage(Mat input)
-{
-    Mat blurredFrame;
-    GaussianBlur(input, blurredFrame, Size(9, 9), 5, 5);
-    return blurredFrame;
-}
-
-Mat cannyTransform(Mat input)
+Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
 {
     Mat processed;
-    Canny(input, processed, 100, 120, 3, false);
+    threshold(input, processed, 70, 255, THRESH_BINARY_INV);
+    //processed = fillHoles(input);
+
+    //GaussianBlur(processed, processed, Size(9, 9), 3, 3);
     return processed;
+
+//    vector<Vec3f> circles;
+//    HoughCircles(processed, circles, CV_HOUGH_GRADIENT, 2, original.rows / 8, 255, 30, 0, 0);
+//    for (size_t i = 0; i < 1; i++)//circles.size()
+//    {
+//        Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+//        pupilx = cvRound(circles[i][0]), pupily = cvRound(circles[i][1]);
+//        pupilRadius = cvRound(circles[i][2]);
+//        irisRadius = pupilRadius*3;
+//        circle(unprocessed, center, pupilRadius, Scalar(0, 0, 0), CV_FILLED);
+//        circle(unprocessed, center, irisRadius, Scalar(0, 0, 255), 2, 8, 0);
+//    }
+//
+//    Mat iris = normalize(unprocessed);
+//    return unprocessed;
+    //return iris;
 }
 
-Mat findAndExtractIris(Mat &input, Mat &unprocessed, Mat &original)
+Mat fillHoles(Mat input)
 {
-    Mat processed;
-    /*processed = EdgeContour(input);*/
+    Mat thresholded;
+    threshold(input, thresholded, 70, 255, THRESH_BINARY_INV);
 
-    GaussianBlur(input, processed, Size(9, 9), 3, 3);
-    threshold(processed, processed, 70, 255, CV_THRESH_BINARY);
+    Mat floodfilled = thresholded.clone();
+    floodFill(floodfilled, Point(0, 0), Scalar(255));
 
-    processed = cannyTransform(processed);
+    bitwise_not(floodfilled, floodfilled);
 
-
-    vector<Vec3f> circles;
-    HoughCircles(processed, circles, CV_HOUGH_GRADIENT, 2, original.rows / 8, 255, 30, 0, 0);
-    if (circles.empty())
-        return original;
-    for (size_t i = 0; i < 1; i++)//circles.size()
-    {
-        Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-
-        pupilRadius = cvRound(circles[i][2]);
-        irisRadius = pupilRadius*4;
-        circle(unprocessed, center, pupilRadius, Scalar(0, 0, 0), CV_FILLED);
-        circle(unprocessed, center, irisRadius, Scalar(0, 0, 255), 2, 8, 0);
-    }
-
-    Vec3f circ = circles[0];
-    Mat1b mask(unprocessed.size(), uchar(0));
-    circle(mask, Point(circ[0], circ[1]), irisRadius, Scalar(255), CV_FILLED);
-    Rect bbox(circ[0] - irisRadius, circ[1] - irisRadius, 2 * irisRadius, 2 * irisRadius);
-    Mat iris(200, 200, CV_8UC3, Scalar(255, 255, 255));
-
-    unprocessed.copyTo(iris, mask);
-    iris = iris(bbox);
-    pupilx = iris.size().width/2, pupily = iris.size().height/2;
-    return iris;
-    //return unprocessed;
+    return (thresholded | floodfilled);
 }
 
-Mat findPupil(Mat input)
+Mat normalize(Mat input) // , int pupilx, int pupily, int pupilRadius, int irisRadius
 {
-    Mat cannyImage;
-    GaussianBlur(input, cannyImage, Size(9, 9), 3, 3);
-
-    Mat processed;
-    double highVal = threshold(input, processed, 70, 255, CV_THRESH_BINARY);
-    double lowVal = highVal * 0.5;
-
-    cannyImage = cannyTransform(processed);
-
-    //cannyImage = CannyTransform(cannyImage);
-
-    vector<Vec3f> circles;
-    HoughCircles(cannyImage, circles, CV_HOUGH_GRADIENT, 20, input.rows, 255, 30, 0, 0);
-    for (size_t i = 0; i < circles.size(); i++)
-    {
-        Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-        pupilx = cvRound(circles[i][0]), pupily = cvRound(circles[i][1]);
-        pupilRadius = cvRound(circles[i][2] * 1.1);
-
-        circle(input, center, pupilRadius, Scalar(0, 0, 0), CV_FILLED);
-    }
-
-    return input;
-}
-
-Mat normalize(Mat input, int pupilx, int pupily, int pupilRadius, int irisRadius)
-{
-    int yNew = 512;
+    int yNew = 360;
     int xNew = 100;
 
     Mat normalized = Mat(xNew, yNew, CV_8U, Scalar(255));
@@ -300,47 +247,4 @@ bool checkUniform(vector<int> binaryCode)
             return false;
     }
     return true;
-}
-
-double hammingDistance(vector<int> savedCode, vector<int> inputCode)
-{
-    int currentDistance = 0;
-    int averageDistance = 0;
-    for (int i = 0; i < inputCode.size(); i++)
-    {
-        currentDistance = 0;
-        unsigned  val = savedCode[i] ^ inputCode[i];
-        while (val != 0)
-        {
-            currentDistance++;
-            val &= val - 1;
-        }
-        averageDistance += currentDistance/8;
-    }
-    return 1.0*averageDistance / inputCode.size();
-}
-
-double chiSquared(vector<int> hist1, vector<int> hist2)
-{
-    vector<double> normalizedHist1(59);
-    vector<double> normalizedHist2(59);
-
-    for (int i = 0; i < 58; i++)
-    {
-        normalizedHist1[i] = (double)hist1[i]/hist1[58];
-        normalizedHist2[i] = (double)hist2[i]/hist2[58];
-    }
-
-    normalizedHist1[58] = 1.0;
-    normalizedHist2[58] = 1.0;
-
-    double chiSquaredValue = 0.0;
-    for (int i = 1; i < 59; i++)
-    {
-        if (hist1[i] + hist2[i] != 0)
-        {
-            chiSquaredValue += pow(normalizedHist1[i] - normalizedHist2[i], 2) / (normalizedHist1[i] + normalizedHist2[i]);
-        }
-    }
-    return chiSquaredValue * 10;
 }
