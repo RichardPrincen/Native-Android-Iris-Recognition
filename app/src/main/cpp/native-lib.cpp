@@ -21,8 +21,7 @@ void JNICALL Java_com_example_richard_nativeandroidopencv_MainActivity_detectIri
     Mat unprocessed = currentImage.clone();
     cvtColor(currentImage, currentImage, COLOR_BGR2GRAY);
     output = findAndExtractIris(currentImage, unprocessed, original);
-    currentImage.release();
-    original.release();
+    unprocessed.release();
 }
 
 extern "C"
@@ -60,7 +59,7 @@ JNIEXPORT jintArray JNICALL Java_com_example_richard_nativeandroidopencv_MainAct
 Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
 {
     Mat processed;
-    threshold(input, processed, 70, 255, THRESH_BINARY_INV);
+    threshold(input, processed, 50, 255, THRESH_BINARY_INV);
     //processed = fillHoles(input);
 
     //GaussianBlur(processed, processed, Size(9, 9), 3, 3);

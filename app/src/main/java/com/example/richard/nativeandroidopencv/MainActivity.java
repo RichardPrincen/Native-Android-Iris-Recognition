@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 	private Mat frameIn;
 	private Mat frameOut;
 	private Mat eyeCircleSelection;
+	private Mat JNIReturn;
 	private File mCascadeFile;
 	private int framesPassed;
 	private int[] irisCode;
@@ -149,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 				{
 					IRISRECOGNITION = true;
 					jcv.flashOn();
+					framesPassed = 0;
 				}
 //				else
 //				{
@@ -165,7 +167,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 	 * which is packaged with this application.
 	 */
 	public native String stringFromJNI();
-
 	public native void detectIris(long addrInput, long addrOutput, long addrOriginal);
 	public native int[] returnHist(long addrInput);
 
@@ -206,6 +207,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		frameIn = new Mat();
 		frameOut = new Mat();
 		eyeCircleSelection = new Mat();
+		JNIReturn = new Mat();
 		framesPassed = 0;
 	}
 
@@ -215,40 +217,38 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		frameIn.release();
 		frameOut.release();
 		eyeCircleSelection.release();
+		JNIReturn.release();
 	}
+
 
 	@Override
 	public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
 	{
-		frameIn = inputFrame.rgba();
-		Mat frameInNocircles = frameIn.clone();
+		int radius = (int)Math.round(frameIn.width()*0.15);
 		Point circleRCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.3);
 		Point circleLCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.7);
-		int radius = (int)Math.round(frameIn.width()*0.15);
-		Imgproc.circle(frameIn, circleRCenter, radius, new Scalar(255, 0, 0), 5);
-		Imgproc.circle(frameIn, circleLCenter, radius, new Scalar(255, 0, 0), 5);
-
 		Rect eyeRegion = new Rect((int)Math.round(frameIn.width()*0.25)-radius, (int)Math.round(frameIn.height()*0.3)-radius, radius*2, radius*2);
-		Mat eyeCircleSelection = frameInNocircles.submat(eyeRegion);
-		//changeImageView(eyeCircleSelection);
+
+
+		frameIn = inputFrame.rgba();
+		frameIn.copyTo(frameOut);
+		eyeCircleSelection = frameIn.submat(eyeRegion);
+		Imgproc.circle(frameOut, circleRCenter, radius, new Scalar(255, 0, 0), 5);
+		Imgproc.circle(frameOut, circleLCenter, radius, new Scalar(255, 0, 0), 5);
 
 		if (IRISRECOGNITION == false)
-			return frameIn;
+			return frameOut;
 
 		if (framesPassed == 20)
 		{
 			framesPassed = 0;
 			jcv.flashOff();
 			IRISRECOGNITION = false;
-			frameOut = eyeCircleSelection.clone();
-			detectIris(eyeCircleSelection.getNativeObjAddr(),frameOut.getNativeObjAddr(), frameIn.getNativeObjAddr());
-			changeImageView(frameOut);
-			frameOut.release();
+			detectIris(eyeCircleSelection.getNativeObjAddr(),JNIReturn.getNativeObjAddr(), frameIn.getNativeObjAddr());
+			changeImageView(JNIReturn);
 		}
 		framesPassed++;
-
-		frameInNocircles.release();
-		return frameIn;
+		return frameOut;
 	}
 
 	public Mat findEye(Mat input)
