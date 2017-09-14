@@ -59,7 +59,7 @@ JNIEXPORT jintArray JNICALL Java_com_example_richard_nativeandroidopencv_MainAct
 Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
 {
     Mat processed;
-    threshold(input, processed, 50, 255, THRESH_BINARY_INV);
+    threshold(input, processed, 70, 255, THRESH_BINARY_INV);
     //processed = fillHoles(input);
 
     //GaussianBlur(processed, processed, Size(9, 9), 3, 3);
@@ -91,7 +91,6 @@ Mat fillHoles(Mat input)
     floodFill(floodfilled, Point(0, 0), Scalar(255));
 
     bitwise_not(floodfilled, floodfilled);
-
     return (thresholded | floodfilled);
 }
 

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.media.Image;
 import android.nfc.Tag;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 	private int framesPassed;
 	private int[] irisCode;
 	private boolean IRISRECOGNITION = false;
+	private boolean ImageViewShown = false;
 	private static String TAG = "MainActivity";
 	private CascadeClassifier eyes_cascade2;
 	JavaCameraView jcv;
@@ -146,7 +148,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 			@Override
 			public boolean onTouch(View v, MotionEvent event)
 			{
-				if (IRISRECOGNITION == false)
+				if (ImageViewShown == false & IRISRECOGNITION == false)
 				{
 					IRISRECOGNITION = true;
 					jcv.flashOn();
@@ -157,6 +159,18 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //					IRISRECOGNITION = false;
 //					jcv.flashOff();
 //				}
+				return false;
+			}
+		});
+
+		final ImageView iv = (ImageView)findViewById(R.id.imageView);
+		iv.setOnTouchListener(new View.OnTouchListener()
+		{
+			@Override
+			public boolean onTouch(View v, MotionEvent event)
+			{
+				iv.setImageResource(0);
+				ImageViewShown = false;
 				return false;
 			}
 		});
@@ -236,7 +250,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		Imgproc.circle(frameOut, circleRCenter, radius, new Scalar(255, 0, 0), 5);
 		Imgproc.circle(frameOut, circleLCenter, radius, new Scalar(255, 0, 0), 5);
 
-		if (IRISRECOGNITION == false)
+		if (IRISRECOGNITION == false | ImageViewShown == true)
 			return frameOut;
 
 		if (framesPassed == 20)
@@ -341,6 +355,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 				iv.setImageBitmap(bm);
 			}
 		});
+		ImageViewShown = true;
 	}
 
 	public double chiSquared(int[] hist1, int[] hist2)

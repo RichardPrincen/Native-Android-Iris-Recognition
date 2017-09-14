@@ -10,14 +10,14 @@
         android:id="@+id/jcv"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        tools:layout_editor_absoluteY="483dp"
-        tools:layout_editor_absoluteX="-16dp"/>
+        tools:layout_editor_absoluteY="0dp"
+        tools:layout_editor_absoluteX="0dp"/>
 
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="fill_parent"
-        android:layout_height="177dp"
+        android:layout_height="fill_parent"
         tools:layout_editor_absoluteX="0dp"
-        tools:layout_editor_absoluteY="426dp"/>
+        tools:layout_editor_absoluteY="0dp"/>
 
 </android.support.constraint.ConstraintLayout>
