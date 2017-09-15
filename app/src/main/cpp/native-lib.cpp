@@ -3,16 +3,7 @@
 #include "Source.h"
 
 extern "C"
-JNIEXPORT jstring JNICALL
-Java_com_example_richard_nativeandroidopencv_MainActivity_stringFromJNI(
-        JNIEnv *env,
-        jobject /* this */) {
-    std::string hello = "Hello from C++";
-    return env->NewStringUTF(hello.c_str());
-}
-
-extern "C"
-void JNICALL Java_com_example_richard_nativeandroidopencv_MainActivity_detectIris(JNIEnv *env, jobject instance, jlong addrInput, jlong addrOutput, jlong addrOriginal)
+void JNICALL Java_com_example_richard_nativeandroidopencv_CameraAuthenticateActivity_detectIris(JNIEnv *env, jobject instance, jlong addrInput, jlong addrOutput, jlong addrOriginal)
 {
     Mat& currentImage = *(Mat*)addrInput;
     Mat& output = *(Mat*)addrOutput;
@@ -25,7 +16,7 @@ void JNICALL Java_com_example_richard_nativeandroidopencv_MainActivity_detectIri
 }
 
 extern "C"
-JNIEXPORT jintArray JNICALL Java_com_example_richard_nativeandroidopencv_MainActivity_returnHist(JNIEnv *env, jobject instance, jlong addrInput)
+JNIEXPORT jintArray JNICALL Java_com_example_richard_nativeandroidopencv_CameraAuthenticateActivity_returnHist(JNIEnv *env, jobject instance, jlong addrInput)
 {
     jintArray javaHistogram;
     javaHistogram = (env)->NewIntArray(59);
@@ -59,7 +50,7 @@ JNIEXPORT jintArray JNICALL Java_com_example_richard_nativeandroidopencv_MainAct
 Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
 {
     Mat processed;
-    threshold(input, processed, 70, 255, THRESH_BINARY_INV);
+    threshold(input, processed, 60, 255, THRESH_BINARY_INV);
     //processed = fillHoles(input);
 
     //GaussianBlur(processed, processed, Size(9, 9), 3, 3);
