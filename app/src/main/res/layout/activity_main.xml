@@ -5,6 +5,7 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:orientation="vertical"
+              android:gravity="bottom"
               tools:context="com.example.richard.nativeandroidopencv.MainActivity">
 
     <Button
@@ -13,7 +14,8 @@
         android:layout_height="90dp"
         android:paddingTop="5dp"
         android:onClick="authenticateButtonClicked"
-        android:text="Authenticate"/>
+        android:text="Authenticate"
+        android:layout_gravity="bottom"/>
 
     <Button
         android:id="@+id/buttonRegister"
@@ -21,6 +23,7 @@
         android:layout_height="90dp"
         android:paddingTop="5dp"
         android:onClick="authenticateButtonClicked"
-        android:text="Register"/>
+        android:text="Register"
+        android:layout_gravity="bottom"/>
 </LinearLayout>
 

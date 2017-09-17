@@ -10,7 +10,11 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 
 
 public class ImageViewActivity extends Activity
@@ -28,6 +32,10 @@ public class ImageViewActivity extends Activity
 		Bitmap passed = (Bitmap) activityThatCalled.getParcelableExtra("sendingMat");
 		imageViewContent = new Mat();
 		Utils.bitmapToMat(passed, imageViewContent);
+
+		Point pt = new Point(imageViewContent.rows()/2, imageViewContent.cols()/2);
+		Mat r = Imgproc.getRotationMatrix2D(pt, -90, 1.0);
+		Imgproc.warpAffine(imageViewContent, imageViewContent, r, new Size(imageViewContent.rows(), imageViewContent.cols()));
 
 		changeImageView(imageViewContent);
 	}

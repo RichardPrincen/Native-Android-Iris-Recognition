@@ -179,7 +179,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		int radius = (int)Math.round(frameIn.width()*0.12);
 		Point circleRCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.3);
 		Point circleLCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.7);
-		Rect eyeRegion = new Rect((int)Math.round(frameIn.width()*0.25)-radius, (int)Math.round(frameIn.height()*0.3)-radius, radius*2, radius*2);
+		Rect eyeRegion = new Rect((int)Math.round(frameIn.width()*0.25-radius*0.5), (int)Math.round(frameIn.height()*0.3-radius*0.5), radius, radius);
 
 
 		frameIn = inputFrame.rgba();
