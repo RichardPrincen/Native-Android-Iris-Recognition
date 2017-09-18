@@ -191,20 +191,17 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		if (IRISRECOGNITION == false)
 			return frameOut;
 
-		if (framesPassed == 20)
+		if (framesPassed == 25)
 		{
 			framesPassed = 0;
 			jcv.flashOff();
 			IRISRECOGNITION = false;
 			detectIris(eyeCircleSelection.getNativeObjAddr(),JNIReturn.getNativeObjAddr(), frameIn.getNativeObjAddr());
-			//changeImageView(JNIReturn);
+
 			Intent getImageViewScreen = new Intent(this, ImageViewActivity.class);
 			final int result = 1;
-			long addr = JNIReturn.getNativeObjAddr();
-
 			Bitmap pass = Bitmap.createBitmap(JNIReturn.cols(), JNIReturn.rows(), Bitmap.Config.ARGB_8888);
 			Utils.matToBitmap(JNIReturn, pass);
-
 			getImageViewScreen.putExtra( "sendingMat", pass );
 			startActivityForResult(getImageViewScreen, result);
 		}

@@ -53,7 +53,7 @@ Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
     threshold(input, processed, 50, 255, THRESH_BINARY_INV);
     //processed = fillHoles(input);
 
-    //GaussianBlur(processed, processed, Size(9, 9), 3, 3);
+    GaussianBlur(processed, processed, Size(9, 9), 3, 3);
     //return processed;
 
     vector<Vec3f> circles;
@@ -63,7 +63,7 @@ Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
         Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
         pupilx = cvRound(circles[i][0]), pupily = cvRound(circles[i][1]);
         pupilRadius = cvRound(circles[i][2]);
-        irisRadius = pupilRadius*3;
+        irisRadius = findIrisRadius(unprocessed, center, pupilRadius);
         circle(unprocessed, center, pupilRadius, Scalar(0, 0, 0), CV_FILLED);
         circle(unprocessed, center, irisRadius, Scalar(0, 0, 255), 2, 8, 0);
     }
@@ -71,6 +71,23 @@ Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
     //Mat iris = normalize(unprocessed);
     return unprocessed;
     //return iris;
+}
+
+int findIrisRadius(Mat input , Point startPoint, int radius)
+{
+    int rightIntensity;
+    int leftIntensity;
+    int position = startPoint.y - (radius+20);
+    int newRadius = radius+20;
+    while (true)
+    {
+        rightIntensity = input.at<uchar>(startPoint.x, position);
+        position -= 15;
+        newRadius += 15;
+        leftIntensity = input.at<uchar>(startPoint.x, position);
+        if (leftIntensity - rightIntensity > 70)
+            return newRadius-5;
+    }
 }
 
 Mat fillHoles(Mat input)

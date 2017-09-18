@@ -15,13 +15,9 @@ using namespace std;
 using namespace cv;
 
 /** Function Headers */
-//Mat detectIris(Mat frame);
-Mat findEye(Mat input);
-Mat blurImage(Mat input);
-Mat cannyTransform(Mat input);
 Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original);
+int findIrisRadius(Mat input , Point startPoint, int radius);
 Mat fillHoles(Mat input);
-Mat findPupil(Mat input);
 Mat normalize(Mat input);
 vector<int> LBP(Mat input);
 bool checkUniform(vector<int> binaryCode);

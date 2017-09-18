@@ -58,7 +58,7 @@ public class ImageViewActivity extends Activity
 	{
 		Intent returnToCameraView = new Intent();
 		setResult(RESULT_OK, returnToCameraView);
-		imageViewContent.release();
+		//imageViewContent.release();
 		finish();
 	}
 }
