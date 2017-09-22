@@ -60,6 +60,9 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 	private static String TAG = "AuthenticateActivity";
 	private static JavaCameraView jcv;
 
+	private File mCascadeFile;
+	private CascadeClassifier eyes_cascade2;
+
 	BaseLoaderCallback mLoader = new BaseLoaderCallback(this)
 	{
 		@Override
@@ -71,10 +74,44 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 				{
 					Log.i(TAG, "OpenCV loaded successfully");
 					jcv.enableView();
-				}	break;
-				default:
-					super.onManagerConnected(status);
+					eyes_cascade2 = new CascadeClassifier("haarcascade_eye.xml");
+					try
+					{
+						// load cascade file from application resources
+						InputStream is = getResources().openRawResource(R.raw.haarcascade_eye);
+						File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
+						mCascadeFile = new File(cascadeDir, "haarcascade_eye.xml");
+						FileOutputStream os = new FileOutputStream(mCascadeFile);
+
+						byte[] buffer = new byte[4096];
+						int bytesRead;
+						while ((bytesRead = is.read(buffer)) != -1)
+						{
+							os.write(buffer, 0, bytesRead);
+						}
+						is.close();
+						os.close();
+
+						eyes_cascade2 = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+						if (eyes_cascade2.empty())
+						{
+							Log.e(TAG, "Failed to load cascade classifier");
+							eyes_cascade2 = null;
+						} else
+							Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
+
+						cascadeDir.delete();
+
+					} catch (IOException e)
+					{
+						e.printStackTrace();
+						Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
+					}
 					break;
+				}
+					default:
+						super.onManagerConnected(status);
+						break;
 			}
 		}
 	};
@@ -179,7 +216,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		int radius = (int)Math.round(frameIn.width()*0.12);
 		Point circleRCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.3);
 		Point circleLCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.7);
-		Rect eyeRegion = new Rect((int)Math.round(frameIn.width()*0.25-radius*0.5), (int)Math.round(frameIn.height()*0.3-radius*0.5), radius, radius);
+		Rect eyeRegion = new Rect((int)Math.round(frameIn.width()*0.25-radius), (int)Math.round(frameIn.height()*0.3-radius), radius*2, radius*2);
 
 
 		frameIn = inputFrame.rgba();
@@ -196,7 +233,8 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 			framesPassed = 0;
 			jcv.flashOff();
 			IRISRECOGNITION = false;
-			detectIris(eyeCircleSelection.getNativeObjAddr(),JNIReturn.getNativeObjAddr(), frameIn.getNativeObjAddr());
+			eyeCircleSelection = findEye(eyeCircleSelection);
+			//detectIris(eyeCircleSelection.getNativeObjAddr(),JNIReturn.getNativeObjAddr(), frameIn.getNativeObjAddr());
 
 			Intent getImageViewScreen = new Intent(this, ImageViewActivity.class);
 			final int result = 1;
@@ -208,8 +246,31 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		framesPassed++;
 		return frameOut;
 	}
+	public Mat findEye(Mat input)
+	{
+		Mat gray = new Mat();
+		Imgproc.cvtColor(input, gray, Imgproc.COLOR_BGR2GRAY);
+		//equalizeHist(gray, gray);
 
+		float height = (float) gray.size().height;
+		long minSize = Math.round(height * 0.5);
+		long maxSize = Math.round(height);
 
+		MatOfRect rectOfEyes = new MatOfRect();
+
+		eyes_cascade2.detectMultiScale(gray, rectOfEyes, 1.1, 2, 0 | Objdetect.CASCADE_SCALE_IMAGE, new Size(minSize, minSize), new Size(maxSize, maxSize)); //
+
+		Rect[] eyes = rectOfEyes.toArray();
+		if (eyes.length == 0)
+			return input;
+		Rect eyeRegion = eyes[0];
+
+		if (eyes.length == 1)
+			eyeRegion = eyes[0];
+
+		Mat eye = input.submat(eyeRegion);
+		return eye;
+	}
 
 	public Mat findCircles(Mat input)
 	{
