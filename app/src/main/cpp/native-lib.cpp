@@ -26,15 +26,6 @@ JNIEXPORT jintArray JNICALL Java_com_example_richard_nativeandroidopencv_CameraA
     }
 
     Mat& currentImage = *(Mat*)addrInput;
-
-    //Mat& output = *(Mat*)addrOutput;
-
-    Mat input = currentImage;
-    Mat unprocessed = currentImage;
-
-    //Find and extract iris
-    currentImage = findAndExtractIris(currentImage, unprocessed, input);
-
     // fill a temp structure to use to populate the java int array
     vector<int> histogram = LBP(currentImage);
     jint fill[59];
@@ -50,27 +41,29 @@ JNIEXPORT jintArray JNICALL Java_com_example_richard_nativeandroidopencv_CameraA
 Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
 {
     Mat processed;
-    threshold(input, processed, 50, 255, THRESH_BINARY_INV);
+    threshold(input, processed, 70, 255, THRESH_BINARY_INV);
     //processed = fillHoles(input);
 
-    GaussianBlur(processed, processed, Size(9, 9), 3, 3);
-    return processed;
+    cvtColor(unprocessed, unprocessed, CV_BGR2GRAY);
 
-//    vector<Vec3f> circles;
-//    HoughCircles(processed, circles, CV_HOUGH_GRADIENT, 2, original.rows / 8, 255, 30, 0, 0);
-//    for (size_t i = 0; i < 1; i++)//circles.size()
-//    {
-//        Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-//        pupilx = cvRound(circles[i][0]), pupily = cvRound(circles[i][1]);
-//        pupilRadius = cvRound(circles[i][2]);
-//        irisRadius = findIrisRadius(unprocessed, center, pupilRadius);
-//        circle(unprocessed, center, pupilRadius, Scalar(0, 0, 0), CV_FILLED);
-//        circle(unprocessed, center, irisRadius, Scalar(0, 0, 255), 2, 8, 0);
-//    }
-//
-//    //Mat iris = normalize(unprocessed);
-//    return unprocessed;
-//    //return iris;
+    GaussianBlur(processed, processed, Size(9, 9), 3, 3);
+    //return processed;
+
+    vector<Vec3f> circles;
+    HoughCircles(processed, circles, CV_HOUGH_GRADIENT, 2, original.rows / 8, 255, 30, 0, 0);
+    for (size_t i = 0; i < 1; i++)//circles.size()
+    {
+        Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+        pupilx = cvRound(circles[i][0]), pupily = cvRound(circles[i][1]);
+        pupilRadius = cvRound(circles[i][2]);
+        irisRadius = pupilRadius*3;//findIrisRadius(unprocessed, center, pupilRadius);
+        circle(unprocessed, center, pupilRadius, Scalar(0), CV_FILLED);
+        circle(unprocessed, center, irisRadius, Scalar(0), 2, 8, 0);
+    }
+
+    Mat iris = normalize(unprocessed);
+    //return unprocessed;
+    return iris;
 }
 
 int findIrisRadius(Mat input , Point startPoint, int radius)

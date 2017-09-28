@@ -33,9 +33,9 @@ public class ImageViewActivity extends Activity
 		imageViewContent = new Mat();
 		Utils.bitmapToMat(passed, imageViewContent);
 
-		Point pt = new Point(imageViewContent.rows()/2, imageViewContent.cols()/2);
-		Mat r = Imgproc.getRotationMatrix2D(pt, -90, 1.0);
-		Imgproc.warpAffine(imageViewContent, imageViewContent, r, new Size(imageViewContent.rows(), imageViewContent.cols()));
+//		Point pt = new Point(imageViewContent.rows()/2, imageViewContent.cols()/2);
+//		Mat r = Imgproc.getRotationMatrix2D(pt, -90, 1.0);
+//		Imgproc.warpAffine(imageViewContent, imageViewContent, r, new Size(imageViewContent.rows(), imageViewContent.cols()));
 
 		changeImageView(imageViewContent);
 	}
@@ -54,11 +54,19 @@ public class ImageViewActivity extends Activity
 		});
 	}
 
-	public void cameraViewButtonClicked(View view)
+	public void buttonYesClicked(View view)
 	{
 		Intent returnToCameraView = new Intent();
+		returnToCameraView.putExtra("result",1);
 		setResult(RESULT_OK, returnToCameraView);
-		//imageViewContent.release();
+		finish();
+	}
+
+	public void buttonNoClicked(View view)
+	{
+		Intent returnToCameraView = new Intent();
+		returnToCameraView.putExtra("result",0);
+		setResult(RESULT_OK, returnToCameraView);
 		finish();
 	}
 }

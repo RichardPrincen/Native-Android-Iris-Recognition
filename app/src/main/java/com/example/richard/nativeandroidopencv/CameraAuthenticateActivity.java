@@ -42,6 +42,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.RoundingMode;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Vector;
 
 import static org.opencv.core.CvType.CV_8U;
@@ -55,10 +57,13 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 	private Mat eyeCircleSelection;
 	public static Mat JNIReturn;
 	private int framesPassed;
-	private int[] irisCode;
+	private Vector<Integer> irisCode1 = new Vector<>();
+	private Vector<Integer> irisCode2 = new Vector<>();
 	private boolean IRISRECOGNITION = false;
+	private boolean correctIris = false;
 	private static String TAG = "AuthenticateActivity";
 	private static JavaCameraView jcv;
+	int [] histogramValues = {0, 1, 2, 3, 4, 6, 7, 8, 12, 14, 15, 16, 24, 28, 30, 31, 32, 48, 56, 60, 62, 63, 64, 96, 112, 120, 124, 126, 127, 128, 129, 131, 135, 143, 159, 191, 192, 193, 195, 199, 207, 223, 224, 225, 227, 231, 239, 240, 241, 243, 247, 248, 249, 251, 252, 253, 254, 255};
 
 	private File mCascadeFile;
 	private CascadeClassifier eyes_cascade2;
@@ -177,6 +182,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		super.onDestroy();
 		if (jcv != null)
 			jcv.disableView();
+		JNIReturn.release();
 	}
 	@Override
 	protected void onResume()
@@ -207,7 +213,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		frameIn.release();
 		frameOut.release();
 		eyeCircleSelection.release();
-		JNIReturn.release();
+		//JNIReturn.release();
 	}
 
 	@Override
@@ -233,8 +239,8 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 			framesPassed = 0;
 			jcv.flashOff();
 			IRISRECOGNITION = false;
-			eyeCircleSelection = findEye(eyeCircleSelection);
-			//detectIris(eyeCircleSelection.getNativeObjAddr(),JNIReturn.getNativeObjAddr(), frameIn.getNativeObjAddr());
+			//eyeCircleSelection = findEye(eyeCircleSelection);
+			detectIris(eyeCircleSelection.getNativeObjAddr(),JNIReturn.getNativeObjAddr(), frameIn.getNativeObjAddr());
 
 			Intent getImageViewScreen = new Intent(this, ImageViewActivity.class);
 			final int result = 1;
@@ -246,6 +252,32 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		framesPassed++;
 		return frameOut;
 	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+		if (requestCode == 1) {
+			if(resultCode == Activity.RESULT_OK){
+				int result=data.getIntExtra("result", -1);
+				if (result  == 1)
+				{
+					correctIris = true;
+					if (irisCode1.isEmpty())
+						irisCode1 = LBP(JNIReturn);
+					else
+					{
+						irisCode2 = LBP(JNIReturn);
+						double check = chiSquared(irisCode1, irisCode2);
+						Log.i(TAG, "memes");
+					}
+
+				}
+				else
+					correctIris = false;
+			}
+		}
+	}
+
 	public Mat findEye(Mat input)
 	{
 		Mat gray = new Mat();
@@ -309,7 +341,139 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		return input;
 	}
 
-	public double chiSquared(int[] hist1, int[] hist2)
+	Vector<Integer> LBP(Mat input)
+	{
+		Vector<Integer> outputHist = new Vector<Integer>();
+		outputHist.setSize(59);
+		Collections.fill(outputHist, 0);
+
+		for (int i = 1; i < input.rows() - 1; i++)
+		{
+			for (int j = 1; j < input.cols() - 1; j++)
+			{
+				//Currently centered pixel
+				double [] otherIntensity = input.get(i, j);
+
+				int vectorValue = 0;
+				Vector<Integer> binaryCode = new Vector<>();
+				double pixelIntensity = otherIntensity[0];
+
+				//Top left
+				otherIntensity = input.get(i, j);
+				if (otherIntensity[0] < pixelIntensity)
+				{
+					vectorValue += 128;
+					binaryCode.add(1);
+				}
+				else
+					binaryCode.add(0);
+
+				//Top middle
+				otherIntensity = input.get(i, j - 1);
+				if (otherIntensity[0] < pixelIntensity)
+				{
+					vectorValue += 64;
+					binaryCode.add(1);
+				}
+				else
+					binaryCode.add(0);
+
+				//Top right
+				otherIntensity = input.get(i + 1, j - 1);
+				if (otherIntensity[0] < pixelIntensity)
+				{
+					vectorValue += 32;
+					binaryCode.add(1);
+				}
+				else
+					binaryCode.add(0);
+
+				//Right
+				otherIntensity = input.get(i + 1, j);
+				if (otherIntensity[0] < pixelIntensity)
+				{
+					vectorValue += 16;
+					binaryCode.add(1);
+				}
+				else
+					binaryCode.add(0);
+
+				//Bottom right
+				otherIntensity = input.get(i + 1, j + 1);
+				if (otherIntensity[0] < pixelIntensity)
+				{
+					vectorValue += 8;
+					binaryCode.add(1);
+				}
+				else
+					binaryCode.add(0);
+
+				//Botttom middle
+				otherIntensity = input.get(i, j + 1);
+				if (otherIntensity[0] < pixelIntensity)
+				{
+					vectorValue += 4;
+					binaryCode.add(1);
+				}
+				else
+					binaryCode.add(0);
+
+				//Bottom left
+				otherIntensity = input.get(i - 1, j + 1);
+				if (otherIntensity[0] < pixelIntensity)
+				{
+					vectorValue += 2;
+					binaryCode.add(1);
+				}
+				else
+					binaryCode.add(0);
+
+				//Left
+				otherIntensity = input.get(i - 1, j);
+				if (otherIntensity[0] < pixelIntensity)
+				{
+					vectorValue += 1;
+					binaryCode.add(1);
+				}
+				else
+					binaryCode.add(0);
+
+				if (checkUniform(binaryCode))
+				{
+					for (int x = 0; x < 59; x++)
+						if (histogramValues[x] == vectorValue)
+						{
+							int hold = outputHist.elementAt(x);
+							outputHist.remove(x);
+							outputHist.add(x, ++hold);
+							break;
+						}
+				}
+				else
+				{
+					int hold = outputHist.elementAt(58);
+					outputHist.remove(58);
+					outputHist.add(58, ++hold);
+				}
+			}
+		}
+		return outputHist;
+	}
+
+	boolean checkUniform(Vector<Integer> binaryCode)
+	{
+		int transitionCount = 0;
+		for (int i = 1; i < 8; i++)
+		{
+			if ((binaryCode.elementAt(i)^ binaryCode.elementAt(i-1)) == 1)
+				transitionCount++;
+			if (transitionCount > 2)
+				return false;
+		}
+		return true;
+	}
+
+	public double chiSquared(Vector<Integer> hist1, Vector<Integer> hist2)
 	{
 		double[] normalizedHist1 = new double[59];
 		double[] normalizedHist2 = new double[59];
@@ -317,8 +481,8 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 
 		for (int i = 0; i < 58; i++)
 		{
-			normalizedHist1[i] = (double) hist1[i] / hist1[58];
-			normalizedHist2[i] = (double) hist2[i] / hist2[58];
+			normalizedHist1[i] = (double) hist1.elementAt(i) / hist1.elementAt(58);
+			normalizedHist2[i] = (double) hist2.elementAt(i) / hist2.elementAt(58);
 		}
 
 		normalizedHist1[58] = 1.0;
@@ -327,7 +491,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		double chiSquaredValue = 0.0;
 		for (int i = 1; i < 59; i++)
 		{
-			if (hist1[i] + hist2[i] != 0)
+			if (hist1.elementAt(i) + hist2.elementAt(i) != 0)
 			{
 				chiSquaredValue += Math.pow(normalizedHist1[i] - normalizedHist2[i], 2) / (normalizedHist1[i] + normalizedHist2[i]);
 			}
