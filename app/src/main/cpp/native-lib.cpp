@@ -3,15 +3,17 @@
 #include "Source.h"
 
 extern "C"
-void JNICALL Java_com_example_richard_nativeandroidopencv_CameraAuthenticateActivity_detectIris(JNIEnv *env, jobject instance, jlong addrInput, jlong addrOutput, jlong addrOriginal)
+void JNICALL Java_com_example_richard_nativeandroidopencv_CameraAuthenticateActivity_detectIris(JNIEnv *env, jobject instance, jlong addrInput, jlong addrOutput, jlong addrOutputNormalized, jlong addrOriginal)
 {
     Mat& currentImage = *(Mat*)addrInput;
     Mat& output = *(Mat*)addrOutput;
+    Mat& outputNormalized = *(Mat*)addrOutputNormalized;
     Mat& original = *(Mat*)addrOriginal;
 
     Mat unprocessed = currentImage.clone();
     cvtColor(currentImage, currentImage, COLOR_BGR2GRAY);
     output = findAndExtractIris(currentImage, unprocessed, original);
+    outputNormalized = normalize(output);
     unprocessed.release();
 }
 
@@ -61,9 +63,9 @@ Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
         circle(unprocessed, center, irisRadius, Scalar(0), 2, 8, 0);
     }
 
-    Mat iris = normalize(unprocessed);
-    //return unprocessed;
-    return iris;
+    //Mat iris = normalize(unprocessed);
+    return unprocessed;
+    //return iris;
 }
 
 int findIrisRadius(Mat input , Point startPoint, int radius)

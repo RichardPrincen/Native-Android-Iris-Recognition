@@ -8,6 +8,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.media.Image;
 import android.nfc.Tag;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -56,6 +57,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 	private Mat frameOut;
 	private Mat eyeCircleSelection;
 	public static Mat JNIReturn;
+	private Mat JNIReturnNormalized;
 	private int framesPassed;
 	private Vector<Integer> irisCode1 = new Vector<>();
 	private Vector<Integer> irisCode2 = new Vector<>();
@@ -166,7 +168,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		});
 	}
 
-	public native void detectIris(long addrInput, long addrOutput, long addrOriginal);
+	public native void detectIris(long addrInput, long addrOutput, long addrOutputNormalized, long addrOriginal);
 	public native int[] returnHist(long addrInput);
 
 	@Override
@@ -183,6 +185,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		if (jcv != null)
 			jcv.disableView();
 		JNIReturn.release();
+		JNIReturnNormalized.release();
 	}
 	@Override
 	protected void onResume()
@@ -205,6 +208,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		frameOut = new Mat();
 		eyeCircleSelection = new Mat();
 		JNIReturn = new Mat();
+		JNIReturnNormalized = new Mat();
 		framesPassed = 0;
 	}
 	@Override
@@ -234,13 +238,13 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		if (IRISRECOGNITION == false)
 			return frameOut;
 
-		if (framesPassed == 25)
+		if (framesPassed == 35)
 		{
 			framesPassed = 0;
 			jcv.flashOff();
 			IRISRECOGNITION = false;
 			//eyeCircleSelection = findEye(eyeCircleSelection);
-			detectIris(eyeCircleSelection.getNativeObjAddr(),JNIReturn.getNativeObjAddr(), frameIn.getNativeObjAddr());
+			detectIris(eyeCircleSelection.getNativeObjAddr(),JNIReturn.getNativeObjAddr(), JNIReturnNormalized.getNativeObjAddr(), frameIn.getNativeObjAddr());
 
 			Intent getImageViewScreen = new Intent(this, ImageViewActivity.class);
 			final int result = 1;
@@ -263,12 +267,17 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 				{
 					correctIris = true;
 					if (irisCode1.isEmpty())
-						irisCode1 = LBP(JNIReturn);
+						irisCode1 = LBP(JNIReturnNormalized);
 					else
 					{
-						irisCode2 = LBP(JNIReturn);
+						irisCode2 = LBP(JNIReturnNormalized);
 						double check = chiSquared(irisCode1, irisCode2);
-						Log.i(TAG, "memes");
+						AlertDialog alertDialog = new AlertDialog.Builder(CameraAuthenticateActivity.this).create();
+						alertDialog.setTitle("Alert");
+						alertDialog.setMessage("Distance: "+check);
+						alertDialog.show();
+						irisCode1 = new Vector<>();
+						irisCode2 = new Vector<>();
 					}
 
 				}
