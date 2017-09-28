@@ -33,9 +33,9 @@ public class ImageViewActivity extends Activity
 		imageViewContent = new Mat();
 		Utils.bitmapToMat(passed, imageViewContent);
 
-//		Point pt = new Point(imageViewContent.rows()/2, imageViewContent.cols()/2);
-//		Mat r = Imgproc.getRotationMatrix2D(pt, -90, 1.0);
-//		Imgproc.warpAffine(imageViewContent, imageViewContent, r, new Size(imageViewContent.rows(), imageViewContent.cols()));
+		Point pt = new Point(imageViewContent.rows()/2, imageViewContent.cols()/2);
+		Mat r = Imgproc.getRotationMatrix2D(pt, -90, 1.0);
+		Imgproc.warpAffine(imageViewContent, imageViewContent, r, new Size(imageViewContent.rows(), imageViewContent.cols()));
 
 		changeImageView(imageViewContent);
 	}
