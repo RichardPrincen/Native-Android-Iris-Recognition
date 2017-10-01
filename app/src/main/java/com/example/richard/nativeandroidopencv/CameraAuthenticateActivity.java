@@ -62,7 +62,6 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 	private Vector<Integer> irisCode1 = new Vector<>();
 	private Vector<Integer> irisCode2 = new Vector<>();
 	private boolean IRISRECOGNITION = false;
-	private boolean correctIris = false;
 	private static String TAG = "AuthenticateActivity";
 	private static JavaCameraView jcv;
 	int [] histogramValues = {0, 1, 2, 3, 4, 6, 7, 8, 12, 14, 15, 16, 24, 28, 30, 31, 32, 48, 56, 60, 62, 63, 64, 96, 112, 120, 124, 126, 127, 128, 129, 131, 135, 143, 159, 191, 192, 193, 195, 199, 207, 223, 224, 225, 227, 231, 239, 240, 241, 243, 247, 248, 249, 251, 252, 253, 254, 255};
@@ -169,7 +168,6 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 	}
 
 	public native void detectIris(long addrInput, long addrOutput, long addrOutputNormalized, long addrOriginal);
-	public native int[] returnHist(long addrInput);
 
 	@Override
 	protected void onPause()
@@ -258,31 +256,29 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 	}
 
 	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	{
 
 		if (requestCode == 1) {
 			if(resultCode == Activity.RESULT_OK){
 				int result=data.getIntExtra("result", -1);
 				if (result  == 1)
 				{
-					correctIris = true;
 					if (irisCode1.isEmpty())
 						irisCode1 = LBP(JNIReturnNormalized);
 					else
 					{
 						irisCode2 = LBP(JNIReturnNormalized);
 						double check = chiSquared(irisCode1, irisCode2);
-						AlertDialog alertDialog = new AlertDialog.Builder(CameraAuthenticateActivity.this).create();
-						alertDialog.setTitle("Alert");
-						alertDialog.setMessage("Distance: "+check);
-						alertDialog.show();
+						Intent getMatchResult = new Intent(this, MatchResultActivity.class);
+						final int resultNew = 1;
+						getMatchResult.putExtra("sendingDistance", check);
+						startActivityForResult(getMatchResult, resultNew);
 						irisCode1 = new Vector<>();
 						irisCode2 = new Vector<>();
 					}
 
 				}
-				else
-					correctIris = false;
 			}
 		}
 	}
@@ -311,43 +307,6 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 
 		Mat eye = input.submat(eyeRegion);
 		return eye;
-	}
-
-	public Mat findCircles(Mat input)
-	{
-		Mat gray = new Mat();
-		Imgproc.cvtColor(input, gray, Imgproc.COLOR_BGR2GRAY);
-		Mat thresholded = new Mat();
-		Mat circles = new Mat();
-
-		Imgproc.threshold(gray, thresholded, 70, 255, Imgproc.THRESH_BINARY_INV);
-		Mat floodfilled = thresholded.clone();
-		Imgproc.floodFill(thresholded, floodfilled, new Point(0, 0), new Scalar(255));
-
-		Core.bitwise_not(floodfilled, floodfilled);
-
-		Core.add(thresholded, floodfilled, thresholded);
-
-		Imgproc.GaussianBlur(thresholded, thresholded, new Size(9, 9), 3, 3);
-		Imgproc.HoughCircles(thresholded, circles, Imgproc.CV_HOUGH_GRADIENT,
-				2.0, thresholded.rows() / 8, 255, 30, 0, 0);
-
-		if (circles.cols() > 0)
-			for (int x = 0; x < circles.cols(); x++)
-			{
-				double vCircle[] = circles.get(0,x);
-
-				if (vCircle == null)
-					break;
-
-				Point pt = new Point(Math.round(vCircle[0]), Math.round(vCircle[1]));
-				int radius = (int)Math.round(vCircle[2]);
-
-				Imgproc.circle(input, pt, radius, new Scalar(0,255,0), -1);
-			}
-		circles.release();
-		thresholded.release();
-		return input;
 	}
 
 	Vector<Integer> LBP(Mat input)

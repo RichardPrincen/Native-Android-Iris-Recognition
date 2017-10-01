@@ -18,12 +18,17 @@
         </activity>
 
         <activity android:name=".ImageViewActivity"
-            android:label="ImageViewScreen"
-            android:theme="@style/AppTheme"/>
+                  android:label="ImageViewScreen"
+                  android:theme="@style/AppTheme"/>
 
         <activity android:name=".CameraAuthenticateActivity"
                   android:label="CameraViewAuthenticateScreen"
                   android:theme="@style/AppTheme"/>
+
+        <activity android:name=".MatchResultActivity"
+                  android:label="MatchResultScreen"
+                  android:theme="@style/AppTheme"/>
+
     </application>
 
 </manifest>
