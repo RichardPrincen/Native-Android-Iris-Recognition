@@ -82,4 +82,10 @@ public class MainActivity extends AppCompatActivity
 		startActivityForResult(getCameraAuthenticateScreen, result);
 	}
 
+	public void registerButtonClicked(View view)
+	{
+		Intent getCameraRegisterScreen = new Intent(this, CameraRegisterActivity.class);
+		final int result = 1;
+		startActivityForResult(getCameraRegisterScreen, result);
+	}
 }

@@ -17,6 +17,21 @@ void JNICALL Java_com_example_richard_nativeandroidopencv_CameraAuthenticateActi
     unprocessed.release();
 }
 
+extern "C"
+void JNICALL Java_com_example_richard_nativeandroidopencv_CameraRegisterActivity_detectIris(JNIEnv *env, jobject instance, jlong addrInput, jlong addrOutput, jlong addrOutputNormalized, jlong addrOriginal)
+{
+    Mat& currentImage = *(Mat*)addrInput;
+    Mat& output = *(Mat*)addrOutput;
+    Mat& outputNormalized = *(Mat*)addrOutputNormalized;
+    Mat& original = *(Mat*)addrOriginal;
+
+    Mat unprocessed = currentImage.clone();
+    cvtColor(currentImage, currentImage, COLOR_BGR2GRAY);
+    output = findAndExtractIris(currentImage, unprocessed, original);
+    outputNormalized = normalize(output);
+    unprocessed.release();
+}
+
 Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
 {
     Mat processed;
@@ -34,7 +49,7 @@ Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
         Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
         pupilx = cvRound(circles[i][0]), pupily = cvRound(circles[i][1]);
         pupilRadius = cvRound(circles[i][2]);
-        irisRadius = pupilRadius*3;//findIrisRadius(unprocessed, center, pupilRadius);
+        irisRadius = findIrisRadius(unprocessed, center, pupilRadius); //pupilRadius*3;//
         circle(unprocessed, center, pupilRadius, Scalar(0), CV_FILLED);
         circle(unprocessed, center, irisRadius, Scalar(0), 2, 8, 0);
     }
@@ -50,11 +65,11 @@ int findIrisRadius(Mat input , Point startPoint, int radius)
     int newRadius = radius+20;
     while (true)
     {
-        rightIntensity = input.at<uchar>(startPoint.x, position);
-        position -= 15;
-        newRadius += 15;
+        rightIntensity = leftIntensity;
+        position -= 10;
+        newRadius += 10;
         leftIntensity = input.at<uchar>(startPoint.x, position);
-        if (leftIntensity - rightIntensity > 70)
+        if (leftIntensity - rightIntensity > 30)
             return newRadius-5;
     }
 }
@@ -96,7 +111,7 @@ Mat normalize(Mat input)
             normalized.at<uchar>(j, i) = input.at<uchar>(y, x);
         }
     }
-    Rect reducedSelection(0, 5, 360, 75);
+    Rect reducedSelection(0, 5, 360, 65);
     normalized = normalized(reducedSelection);
     return normalized;
 }

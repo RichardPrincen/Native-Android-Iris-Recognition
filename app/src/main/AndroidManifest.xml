@@ -25,6 +25,10 @@
                   android:label="CameraViewAuthenticateScreen"
                   android:theme="@style/AppTheme"/>
 
+        <activity android:name=".CameraRegisterActivity"
+                  android:label="CameraViewRegisterScreen"
+                  android:theme="@style/AppTheme"/>
+
         <activity android:name=".MatchResultActivity"
                   android:label="MatchResultScreen"
                   android:theme="@style/AppTheme"/>

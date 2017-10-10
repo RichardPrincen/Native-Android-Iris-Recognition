@@ -24,7 +24,7 @@ public class MatchResultActivity extends Activity
 		tvDistance.setText(""+passed);
 
 		TextView tvMatch = (TextView) findViewById(R.id.matchText);
-		if (passed < 0.7)
+		if (passed < 1)
 			tvMatch.setText("Match.");
 		else
 			tvMatch.setText("No match.");

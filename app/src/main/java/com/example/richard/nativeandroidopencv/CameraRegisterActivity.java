@@ -40,11 +40,9 @@ import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.objdetect.Objdetect;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.RoundingMode;
 import java.util.Collection;
@@ -55,7 +53,7 @@ import static org.opencv.core.CvType.CV_8U;
 import static org.opencv.core.CvType.CV_8UC1;
 import static org.opencv.core.CvType.CV_8UC4;
 
-public class CameraAuthenticateActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2
+public class CameraRegisterActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2
 {
 	private Mat frameIn;
 	private Mat frameOut;
@@ -63,10 +61,9 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 	public static Mat JNIReturn;
 	private Mat JNIReturnNormalized;
 	private int framesPassed;
-	private Vector<Integer> irisCode1 = new Vector<>();
-	private Vector<Integer> irisCode2 = new Vector<>();
+	private Vector<Integer> irisCode = new Vector<>();
 	private boolean IRISRECOGNITION = false;
-	private static String TAG = "AuthenticateActivity";
+	private static String TAG = "RegisterActivity";
 	private static JavaCameraView jcv;
 	int [] histogramValues = {0, 1, 2, 3, 4, 6, 7, 8, 12, 14, 15, 16, 24, 28, 30, 31, 32, 48, 56, 60, 62, 63, 64, 96, 112, 120, 124, 126, 127, 128, 129, 131, 135, 143, 159, 191, 192, 193, 195, 199, 207, 223, 224, 225, 227, 231, 239, 240, 241, 243, 247, 248, 249, 251, 252, 253, 254, 255};
 
@@ -119,9 +116,9 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 					}
 					break;
 				}
-					default:
-						super.onManagerConnected(status);
-						break;
+				default:
+					super.onManagerConnected(status);
+					break;
 			}
 		}
 	};
@@ -169,8 +166,6 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 				return false;
 			}
 		});
-
-		loadIrisCode("Richard");
 	}
 
 	public native void detectIris(long addrInput, long addrOutput, long addrOutputNormalized, long addrOriginal);
@@ -221,7 +216,6 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		frameIn.release();
 		frameOut.release();
 		eyeCircleSelection.release();
-		//JNIReturn.release();
 	}
 
 	@Override
@@ -265,47 +259,21 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
 
-		if (requestCode == 1) {
-			if(resultCode == Activity.RESULT_OK){
+		if (requestCode == 1)
+		{
+			if(resultCode == Activity.RESULT_OK)
+			{
 				int result=data.getIntExtra("result", -1);
 				if (result  == 1)
 				{
-					irisCode2 = LBP(JNIReturnNormalized);
-					double check = chiSquared(irisCode1, irisCode2);
-					Intent getMatchResult = new Intent(this, MatchResultActivity.class);
-					final int resultNew = 1;
-					getMatchResult.putExtra("sendingDistance", check);
-					startActivityForResult(getMatchResult, resultNew);
-					irisCode2 = new Vector<>();
+					irisCode = LBP(JNIReturnNormalized);
+					saveIrisCode("Richard", irisCode);
+					Intent returnToMain = new Intent();
+					setResult(RESULT_OK, returnToMain);
+					finish();
 				}
 			}
 		}
-	}
-
-	public Mat findEye(Mat input)
-	{
-		Mat gray = new Mat();
-		Imgproc.cvtColor(input, gray, Imgproc.COLOR_BGR2GRAY);
-		//equalizeHist(gray, gray);
-
-		float height = (float) gray.size().height;
-		long minSize = Math.round(height * 0.5);
-		long maxSize = Math.round(height);
-
-		MatOfRect rectOfEyes = new MatOfRect();
-
-		eyes_cascade2.detectMultiScale(gray, rectOfEyes, 1.1, 2, 0 | Objdetect.CASCADE_SCALE_IMAGE, new Size(minSize, minSize), new Size(maxSize, maxSize)); //
-
-		Rect[] eyes = rectOfEyes.toArray();
-		if (eyes.length == 0)
-			return input;
-		Rect eyeRegion = eyes[0];
-
-		if (eyes.length == 1)
-			eyeRegion = eyes[0];
-
-		Mat eye = input.submat(eyeRegion);
-		return eye;
 	}
 
 	Vector<Integer> LBP(Mat input)
@@ -440,40 +408,15 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		return true;
 	}
 
-	public double chiSquared(Vector<Integer> hist1, Vector<Integer> hist2)
-	{
-		double[] normalizedHist1 = new double[59];
-		double[] normalizedHist2 = new double[59];
-		;
-
-		for (int i = 0; i < 58; i++)
-		{
-			normalizedHist1[i] = (double) hist1.elementAt(i) / hist1.elementAt(58);
-			normalizedHist2[i] = (double) hist2.elementAt(i) / hist2.elementAt(58);
-		}
-
-		normalizedHist1[58] = 1.0;
-		normalizedHist2[58] = 1.0;
-
-		double chiSquaredValue = 0.0;
-		for (int i = 1; i < 59; i++)
-		{
-			if (hist1.elementAt(i) + hist2.elementAt(i) != 0)
-			{
-				chiSquaredValue += Math.pow(normalizedHist1[i] - normalizedHist2[i], 2) / (normalizedHist1[i] + normalizedHist2[i]);
-			}
-		}
-		return chiSquaredValue * 10;
-	}
-
-	public void loadIrisCode(String name)
+	public void saveIrisCode(String name, Vector<Integer> irisCodeVector)
 	{
 		try
 		{
-			FileInputStream fis = openFileInput(name);
-			ObjectInputStream ois = new ObjectInputStream(fis);
-			irisCode1 = (Vector<Integer>)ois.readObject();
-			ois.close();
+			FileOutputStream fos = openFileOutput(name, Context.MODE_PRIVATE);
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(irisCodeVector);
+			oos.close();
+			oos.flush();
 		}
 		catch (Exception e)
 		{

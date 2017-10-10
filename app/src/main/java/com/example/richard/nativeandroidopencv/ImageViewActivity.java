@@ -36,7 +36,7 @@ public class ImageViewActivity extends Activity
 		Point pt = new Point(imageViewContent.rows()/2, imageViewContent.cols()/2);
 		Mat r = Imgproc.getRotationMatrix2D(pt, -90, 1.0);
 		Imgproc.warpAffine(imageViewContent, imageViewContent, r, new Size(imageViewContent.rows(), imageViewContent.cols()));
-
+		r.release();
 		changeImageView(imageViewContent);
 	}
 
