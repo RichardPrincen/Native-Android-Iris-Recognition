@@ -59,6 +59,8 @@ Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
 
 int findIrisRadius(Mat input , Point startPoint, int radius)
 {
+    Mat hold;
+    threshold(input, hold, 180, 255, CV_THRESH_BINARY);
     int rightIntensity;
     int leftIntensity;
     int position = startPoint.y - (radius+20);
@@ -68,8 +70,8 @@ int findIrisRadius(Mat input , Point startPoint, int radius)
         rightIntensity = leftIntensity;
         position -= 10;
         newRadius += 10;
-        leftIntensity = input.at<uchar>(startPoint.x, position);
-        if (leftIntensity - rightIntensity > 30)
+        leftIntensity = hold.at<uchar>(startPoint.x, position);
+        if (leftIntensity != rightIntensity)
             return newRadius-5;
     }
 }
