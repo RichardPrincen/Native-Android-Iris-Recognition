@@ -33,6 +33,14 @@
                   android:label="MatchResultScreen"
                   android:theme="@style/AppTheme"/>
 
+        <activity android:name=".InputNameRegisterActivity"
+                  android:label="NameRegisterScreen"
+                  android:theme="@style/AppTheme"/>
+
+        <activity android:name=".ListDeleteUsersActivity"
+                  android:label="DeleteUserScreen"
+                  android:theme="@style/AppTheme"/>
+
     </application>
 
 </manifest>

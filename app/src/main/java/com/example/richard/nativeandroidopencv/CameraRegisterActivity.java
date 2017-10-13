@@ -387,6 +387,29 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 
 	public void loadUserDatabase()
 	{
+		File checkFile = new File("irisCodes");
+		if (!checkFile.exists())
+		{
+			try
+			{
+				FileOutputStream irisCodesFileOutputStream = openFileOutput("irisCodes", Context.MODE_PRIVATE);
+				ObjectOutputStream irisCodesObjectOutputStream = new ObjectOutputStream(irisCodesFileOutputStream);
+				irisCodesObjectOutputStream.writeObject(new Vector<Vector<Integer>>());
+				irisCodesObjectOutputStream.close();
+				irisCodesObjectOutputStream.flush();
+
+				FileOutputStream namesFileOutputStream = openFileOutput("names", Context.MODE_PRIVATE);
+				ObjectOutputStream namesObjectOutputStream = new ObjectOutputStream(namesFileOutputStream);
+				namesObjectOutputStream.writeObject(new Vector<String>());
+				namesObjectOutputStream.close();
+				namesObjectOutputStream.flush();
+
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
+		}
 		try
 		{
 			FileInputStream irisCodesFileInputStream = openFileInput("irisCodes");

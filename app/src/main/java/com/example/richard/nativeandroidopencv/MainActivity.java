@@ -84,8 +84,15 @@ public class MainActivity extends AppCompatActivity
 
 	public void registerButtonClicked(View view)
 	{
-		Intent getCameraRegisterScreen = new Intent(this, CameraRegisterActivity.class);
+		Intent getInputRegisterScreen = new Intent(this, InputNameRegisterActivity.class);
 		final int result = 1;
-		startActivityForResult(getCameraRegisterScreen, result);
+		startActivityForResult(getInputRegisterScreen, result);
+	}
+
+	public void deleteButtonClicked(View view)
+	{
+		Intent getDeleteUserScreen = new Intent(this, ListDeleteUsersActivity.class);
+		final int result = 1;
+		startActivityForResult(getDeleteUserScreen, result);
 	}
 }

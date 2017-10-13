@@ -21,7 +21,7 @@ public class MatchResultActivity extends Activity
 		TextView tvMatch = (TextView) findViewById(R.id.matchText);
 
 		Intent activityThatCalled = getIntent();
-		double passed = activityThatCalled.getDoubleExtra("sendingDistance",10.0);
+		double passed = activityThatCalled.getDoubleExtra("sendingDistance",-1);
 		if (passed == -1)
 			tvMatch.setText("No match found.");
 		else
