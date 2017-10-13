@@ -4,22 +4,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
-import android.media.Image;
-import android.nfc.Tag;
-import android.os.Environment;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -27,31 +17,22 @@ import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
-import org.opencv.objdetect.Objdetect;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.math.RoundingMode;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Vector;
-
-import static org.opencv.core.CvType.CV_8U;
-import static org.opencv.core.CvType.CV_8UC1;
-import static org.opencv.core.CvType.CV_8UC4;
 
 public class CameraRegisterActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2
 {
@@ -67,8 +48,8 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 	private static JavaCameraView jcv;
 	int [] histogramValues = {0, 1, 2, 3, 4, 6, 7, 8, 12, 14, 15, 16, 24, 28, 30, 31, 32, 48, 56, 60, 62, 63, 64, 96, 112, 120, 124, 126, 127, 128, 129, 131, 135, 143, 159, 191, 192, 193, 195, 199, 207, 223, 224, 225, 227, 231, 239, 240, 241, 243, 247, 248, 249, 251, 252, 253, 254, 255};
 
-	private File mCascadeFile;
-	private CascadeClassifier eyes_cascade2;
+	private UserDatabase userdb;
+	private String passedName;
 
 	BaseLoaderCallback mLoader = new BaseLoaderCallback(this)
 	{
@@ -81,39 +62,6 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 				{
 					Log.i(TAG, "OpenCV loaded successfully");
 					jcv.enableView();
-					eyes_cascade2 = new CascadeClassifier("haarcascade_eye.xml");
-					try
-					{
-						// load cascade file from application resources
-						InputStream is = getResources().openRawResource(R.raw.haarcascade_eye);
-						File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-						mCascadeFile = new File(cascadeDir, "haarcascade_eye.xml");
-						FileOutputStream os = new FileOutputStream(mCascadeFile);
-
-						byte[] buffer = new byte[4096];
-						int bytesRead;
-						while ((bytesRead = is.read(buffer)) != -1)
-						{
-							os.write(buffer, 0, bytesRead);
-						}
-						is.close();
-						os.close();
-
-						eyes_cascade2 = new CascadeClassifier(mCascadeFile.getAbsolutePath());
-						if (eyes_cascade2.empty())
-						{
-							Log.e(TAG, "Failed to load cascade classifier");
-							eyes_cascade2 = null;
-						} else
-							Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
-
-						cascadeDir.delete();
-
-					} catch (IOException e)
-					{
-						e.printStackTrace();
-						Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
-					}
 					break;
 				}
 				default:
@@ -147,6 +95,9 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 		setContentView(R.layout.activity_camera_view_authenticate);
 
+		Intent activityThatCalled = getIntent();
+		passedName = activityThatCalled.getStringExtra("sendingName");
+
 		jcv = (JavaCameraView) findViewById(R.id.jcv);
 		jcv.setVisibility(JavaCameraView.VISIBLE);
 		jcv.setCvCameraViewListener(this);
@@ -166,6 +117,8 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 				return false;
 			}
 		});
+
+		loadUserDatabase();
 	}
 
 	public native void detectIris(long addrInput, long addrOutput, long addrOutputNormalized, long addrOriginal);
@@ -267,7 +220,8 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 				if (result  == 1)
 				{
 					irisCode = LBP(JNIReturnNormalized);
-					saveIrisCode("Richard", irisCode);
+					userdb.addUser(irisCode, passedName);
+					saveUserDatabase();
 					Intent returnToMain = new Intent();
 					setResult(RESULT_OK, returnToMain);
 					finish();
@@ -408,15 +362,44 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		return true;
 	}
 
-	public void saveIrisCode(String name, Vector<Integer> irisCodeVector)
+	public void saveUserDatabase()
 	{
 		try
 		{
-			FileOutputStream fos = openFileOutput(name, Context.MODE_PRIVATE);
-			ObjectOutputStream oos = new ObjectOutputStream(fos);
-			oos.writeObject(irisCodeVector);
-			oos.close();
-			oos.flush();
+			FileOutputStream irisCodesFileOutputStream = openFileOutput("irisCodes", Context.MODE_PRIVATE);
+			ObjectOutputStream irisCodesObjectOutputStream = new ObjectOutputStream(irisCodesFileOutputStream);
+			irisCodesObjectOutputStream.writeObject(userdb.irisCodes);
+			irisCodesObjectOutputStream.close();
+			irisCodesObjectOutputStream.flush();
+
+			FileOutputStream namesFileOutputStream = openFileOutput("names", Context.MODE_PRIVATE);
+			ObjectOutputStream namesObjectOutputStream = new ObjectOutputStream(namesFileOutputStream);
+			namesObjectOutputStream.writeObject(userdb.names);
+			namesObjectOutputStream.close();
+			namesObjectOutputStream.flush();
+
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public void loadUserDatabase()
+	{
+		try
+		{
+			FileInputStream irisCodesFileInputStream = openFileInput("irisCodes");
+			ObjectInputStream irisCodesObjectInputStream = new ObjectInputStream(irisCodesFileInputStream);
+			Vector<Vector<Integer>> irisCodes = (Vector<Vector<Integer>>)irisCodesObjectInputStream.readObject();
+			irisCodesObjectInputStream.close();
+
+			FileInputStream namesFileInputStream = openFileInput("names");
+			ObjectInputStream namesObjectInputStream = new ObjectInputStream(namesFileInputStream);
+			Vector<String> names = (Vector<String>)namesObjectInputStream.readObject();
+			namesObjectInputStream.close();
+
+			userdb = new UserDatabase(irisCodes, names);
 		}
 		catch (Exception e)
 		{

@@ -14,7 +14,7 @@
         android:layout_height="90dp"
         android:paddingTop="5dp"
         android:onClick="authenticateButtonClicked"
-        android:text="Authenticate"
+        android:text="Authenticate User"
         android:layout_gravity="bottom"/>
 
     <Button
@@ -23,7 +23,16 @@
         android:layout_height="90dp"
         android:paddingTop="5dp"
         android:onClick="registerButtonClicked"
-        android:text="Register"
+        android:text="Register New User"
+        android:layout_gravity="bottom"/>
+
+    <Button
+        android:id="@+id/buttonDelete"
+        android:layout_width="match_parent"
+        android:layout_height="90dp"
+        android:paddingTop="5dp"
+        android:onClick="deleteButtonClicked"
+        android:text="Delete User"
         android:layout_gravity="bottom"/>
 </LinearLayout>
 

@@ -18,16 +18,19 @@ public class MatchResultActivity extends Activity
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		setContentView(R.layout.activity_match_result);
 
-		Intent activityThatCalled = getIntent();
-		double passed = (double) activityThatCalled.getDoubleExtra("sendingDistance",10.0);
-		TextView tvDistance = (TextView) findViewById(R.id.distanceText);
-		tvDistance.setText(""+passed);
-
 		TextView tvMatch = (TextView) findViewById(R.id.matchText);
-		if (passed < 1)
-			tvMatch.setText("Match.");
+
+		Intent activityThatCalled = getIntent();
+		double passed = activityThatCalled.getDoubleExtra("sendingDistance",10.0);
+		if (passed == -1)
+			tvMatch.setText("No match found.");
 		else
-			tvMatch.setText("No match.");
+		{
+			String matchName = activityThatCalled.getStringExtra("sendingMatchedName");
+			TextView tvDistance = (TextView) findViewById(R.id.distanceText);
+			tvDistance.setText(""+passed);
+			tvMatch.setText(matchName);
+		}
 	}
 
 	public void buttonOKClicked(View view)

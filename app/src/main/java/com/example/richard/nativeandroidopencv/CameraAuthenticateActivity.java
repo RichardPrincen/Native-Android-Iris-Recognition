@@ -63,15 +63,13 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 	public static Mat JNIReturn;
 	private Mat JNIReturnNormalized;
 	private int framesPassed;
-	private Vector<Integer> irisCode1 = new Vector<>();
-	private Vector<Integer> irisCode2 = new Vector<>();
+	private Vector<Integer> irisCodeInput = new Vector<>();
 	private boolean IRISRECOGNITION = false;
 	private static String TAG = "AuthenticateActivity";
 	private static JavaCameraView jcv;
 	int [] histogramValues = {0, 1, 2, 3, 4, 6, 7, 8, 12, 14, 15, 16, 24, 28, 30, 31, 32, 48, 56, 60, 62, 63, 64, 96, 112, 120, 124, 126, 127, 128, 129, 131, 135, 143, 159, 191, 192, 193, 195, 199, 207, 223, 224, 225, 227, 231, 239, 240, 241, 243, 247, 248, 249, 251, 252, 253, 254, 255};
 
-	private File mCascadeFile;
-	private CascadeClassifier eyes_cascade2;
+	private UserDatabase userdb;
 
 	BaseLoaderCallback mLoader = new BaseLoaderCallback(this)
 	{
@@ -84,39 +82,6 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 				{
 					Log.i(TAG, "OpenCV loaded successfully");
 					jcv.enableView();
-					eyes_cascade2 = new CascadeClassifier("haarcascade_eye.xml");
-					try
-					{
-						// load cascade file from application resources
-						InputStream is = getResources().openRawResource(R.raw.haarcascade_eye);
-						File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-						mCascadeFile = new File(cascadeDir, "haarcascade_eye.xml");
-						FileOutputStream os = new FileOutputStream(mCascadeFile);
-
-						byte[] buffer = new byte[4096];
-						int bytesRead;
-						while ((bytesRead = is.read(buffer)) != -1)
-						{
-							os.write(buffer, 0, bytesRead);
-						}
-						is.close();
-						os.close();
-
-						eyes_cascade2 = new CascadeClassifier(mCascadeFile.getAbsolutePath());
-						if (eyes_cascade2.empty())
-						{
-							Log.e(TAG, "Failed to load cascade classifier");
-							eyes_cascade2 = null;
-						} else
-							Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
-
-						cascadeDir.delete();
-
-					} catch (IOException e)
-					{
-						e.printStackTrace();
-						Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
-					}
 					break;
 				}
 					default:
@@ -170,7 +135,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 			}
 		});
 
-		loadIrisCode("Richard");
+		loadUserDatabase();
 	}
 
 	public native void detectIris(long addrInput, long addrOutput, long addrOutputNormalized, long addrOriginal);
@@ -270,42 +235,33 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 				int result=data.getIntExtra("result", -1);
 				if (result  == 1)
 				{
-					irisCode2 = LBP(JNIReturnNormalized);
-					double check = chiSquared(irisCode1, irisCode2);
-					Intent getMatchResult = new Intent(this, MatchResultActivity.class);
-					final int resultNew = 1;
-					getMatchResult.putExtra("sendingDistance", check);
-					startActivityForResult(getMatchResult, resultNew);
-					irisCode2 = new Vector<>();
+					irisCodeInput = LBP(JNIReturnNormalized);
+					double chiSquaredDistance;
+					boolean MatchFound = false;
+					for (int i = 0;i < userdb.irisCodes.size();i++)
+					{
+						chiSquaredDistance = chiSquared(irisCodeInput, userdb.irisCodes.elementAt(i));
+						if (chiSquaredDistance < 1.0)
+						{
+							MatchFound = true;
+							Intent getMatchResult = new Intent(this, MatchResultActivity.class);
+							final int resultNew = 1;
+							getMatchResult.putExtra("sendingDistance", chiSquaredDistance);
+							getMatchResult.putExtra("sendingMatchedName", userdb.names.elementAt(i));
+							startActivityForResult(getMatchResult, resultNew);
+							break;
+						}
+					}
+					if (!MatchFound)
+					{
+						Intent getMatchResult = new Intent(this, MatchResultActivity.class);
+						final int resultNew = 1;
+						getMatchResult.putExtra("sendingDistance", -1);
+						startActivityForResult(getMatchResult, resultNew);
+					}
 				}
 			}
 		}
-	}
-
-	public Mat findEye(Mat input)
-	{
-		Mat gray = new Mat();
-		Imgproc.cvtColor(input, gray, Imgproc.COLOR_BGR2GRAY);
-		//equalizeHist(gray, gray);
-
-		float height = (float) gray.size().height;
-		long minSize = Math.round(height * 0.5);
-		long maxSize = Math.round(height);
-
-		MatOfRect rectOfEyes = new MatOfRect();
-
-		eyes_cascade2.detectMultiScale(gray, rectOfEyes, 1.1, 2, 0 | Objdetect.CASCADE_SCALE_IMAGE, new Size(minSize, minSize), new Size(maxSize, maxSize)); //
-
-		Rect[] eyes = rectOfEyes.toArray();
-		if (eyes.length == 0)
-			return input;
-		Rect eyeRegion = eyes[0];
-
-		if (eyes.length == 1)
-			eyeRegion = eyes[0];
-
-		Mat eye = input.submat(eyeRegion);
-		return eye;
 	}
 
 	Vector<Integer> LBP(Mat input)
@@ -466,14 +422,21 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		return chiSquaredValue * 10;
 	}
 
-	public void loadIrisCode(String name)
+	public void loadUserDatabase()
 	{
 		try
 		{
-			FileInputStream fis = openFileInput(name);
-			ObjectInputStream ois = new ObjectInputStream(fis);
-			irisCode1 = (Vector<Integer>)ois.readObject();
-			ois.close();
+			FileInputStream irisCodesFileInputStream = openFileInput("irisCodes");
+			ObjectInputStream irisCodesObjectInputStream = new ObjectInputStream(irisCodesFileInputStream);
+			Vector<Vector<Integer>> irisCodes = (Vector<Vector<Integer>>)irisCodesObjectInputStream.readObject();
+			irisCodesObjectInputStream.close();
+
+			FileInputStream namesFileInputStream = openFileInput("names");
+			ObjectInputStream namesObjectInputStream = new ObjectInputStream(namesFileInputStream);
+			Vector<String> names = (Vector<String>)namesObjectInputStream.readObject();
+			namesObjectInputStream.close();
+
+			userdb = new UserDatabase(irisCodes, names);
 		}
 		catch (Exception e)
 		{

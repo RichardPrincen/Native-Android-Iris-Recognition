@@ -35,7 +35,7 @@ void JNICALL Java_com_example_richard_nativeandroidopencv_CameraRegisterActivity
 Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
 {
     Mat processed;
-    threshold(input, processed, 70, 255, THRESH_BINARY_INV);
+    threshold(input, processed, 90, 255, THRESH_BINARY_INV);
     //processed = fillHoles(input);
 
     cvtColor(unprocessed, unprocessed, CV_BGR2GRAY);
@@ -44,6 +44,8 @@ Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
 
     vector<Vec3f> circles;
     HoughCircles(processed, circles, CV_HOUGH_GRADIENT, 2, original.rows / 8, 255, 30, 0, 0);
+    if (circles.size() == 0)
+        unprocessed.release();
     for (size_t i = 0; i < 1; i++)//circles.size()
     {
         Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
