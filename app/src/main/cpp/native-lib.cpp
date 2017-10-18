@@ -115,7 +115,7 @@ Mat normalize(Mat input)
             normalized.at<uchar>(j, i) = input.at<uchar>(y, x);
         }
     }
-    Rect reducedSelection(0, 5, 360, 65);
+    Rect reducedSelection(0, 5, 360, 60);
     normalized = normalized(reducedSelection);
     return normalized;
 }

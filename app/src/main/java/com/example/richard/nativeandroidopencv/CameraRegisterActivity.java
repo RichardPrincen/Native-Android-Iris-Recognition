@@ -34,6 +34,8 @@ import java.io.ObjectOutputStream;
 import java.util.Collections;
 import java.util.Vector;
 
+import static org.opencv.core.CvType.CV_8U;
+
 public class CameraRegisterActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2
 {
 	private Mat frameIn;
@@ -219,7 +221,7 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 				int result=data.getIntExtra("result", -1);
 				if (result  == 1)
 				{
-					irisCode = LBP(JNIReturnNormalized);
+					irisCode = NBP(JNIReturnNormalized);//LBP(JNIReturnNormalized);
 					userdb.addUser(irisCode, passedName);
 					saveUserDatabase();
 					Intent returnToMain = new Intent();
@@ -362,6 +364,100 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		return true;
 	}
 
+	Vector<Integer> NBP(Mat input)
+	{
+		Mat NBPimage = new Mat(input.rows(), input.cols(), CV_8U);
+		Vector<Integer> NBPcode = new Vector<>();
+
+		for (int i = 1; i < input.rows() - 1; i++)
+		{
+			for (int j = 1; j < input.cols() - 1; j++)
+			{
+				//Currently centered pixel
+				double [] otherIntensity = input.get(i, j);
+
+				int vectorValue = 0;
+				Vector<Integer> binaryCode = new Vector<>();
+				double pixelIntensity = otherIntensity[0];
+
+				//Top left
+				otherIntensity = input.get(i, j);
+				if (otherIntensity[0] < pixelIntensity)
+					vectorValue += 128;
+
+				//Top middle
+				otherIntensity = input.get(i, j - 1);
+				if (otherIntensity[0] < pixelIntensity)
+					vectorValue += 64;
+
+				//Top right
+				otherIntensity = input.get(i + 1, j - 1);
+				if (otherIntensity[0] < pixelIntensity)
+					vectorValue += 32;
+
+
+				//Right
+				otherIntensity = input.get(i + 1, j);
+				if (otherIntensity[0] < pixelIntensity)
+					vectorValue += 16;
+
+				//Bottom right
+				otherIntensity = input.get(i + 1, j + 1);
+				if (otherIntensity[0] < pixelIntensity)
+					vectorValue += 8;
+
+				//Botttom middle
+				otherIntensity = input.get(i, j + 1);
+				if (otherIntensity[0] < pixelIntensity)
+					vectorValue += 4;
+
+				//Bottom left
+				otherIntensity = input.get(i - 1, j + 1);
+				if (otherIntensity[0] < pixelIntensity)
+					vectorValue += 2;
+
+				//Left
+				otherIntensity = input.get(i - 1, j);
+				if (otherIntensity[0] < pixelIntensity)
+					vectorValue += 1;
+
+				NBPimage.put(i, j, vectorValue);
+			}
+		}
+
+		Vector<Vector<Integer>> means = new Vector<>();
+		Vector<Integer> rowmeans;
+		for (int i = 0; i < 6; i++)
+		{
+			rowmeans = new Vector<>();
+			for (int j = 0; j < 12; j++)
+			{
+				int blockmean = 0;
+				for (int x = i * 10; x < i * 10 + 10; x++)
+				{
+					for (int y = j * 30; y < j * 30 + 30; y++)
+					{
+						blockmean += NBPimage.get(x, y)[0];
+					}
+				}
+				rowmeans.add(blockmean/(30*10));
+			}
+			means.add(rowmeans);
+		}
+
+		for (int i = 0; i < 6; i++)
+		{
+			for (int j = 0; j < 10; j++)
+			{
+				if (means.elementAt(i).elementAt(j) > means.elementAt(i).elementAt(j + 1))
+					NBPcode.add(1);
+				else
+					NBPcode.add(0);
+			}
+		}
+		return NBPcode;
+	}
+
 	public void saveUserDatabase()
 	{
 		try
@@ -387,29 +483,29 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 
 	public void loadUserDatabase()
 	{
-		File checkFile = new File("irisCodes");
-		if (!checkFile.exists())
-		{
-			try
-			{
-				FileOutputStream irisCodesFileOutputStream = openFileOutput("irisCodes", Context.MODE_PRIVATE);
-				ObjectOutputStream irisCodesObjectOutputStream = new ObjectOutputStream(irisCodesFileOutputStream);
-				irisCodesObjectOutputStream.writeObject(new Vector<Vector<Integer>>());
-				irisCodesObjectOutputStream.close();
-				irisCodesObjectOutputStream.flush();
-
-				FileOutputStream namesFileOutputStream = openFileOutput("names", Context.MODE_PRIVATE);
-				ObjectOutputStream namesObjectOutputStream = new ObjectOutputStream(namesFileOutputStream);
-				namesObjectOutputStream.writeObject(new Vector<String>());
-				namesObjectOutputStream.close();
-				namesObjectOutputStream.flush();
-
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-			}
-		}
+//		File checkFile = new File("irisCodes");
+//		if (!checkFile.exists())
+//		{
+//			try
+//			{
+//				FileOutputStream irisCodesFileOutputStream = openFileOutput("irisCodes", Context.MODE_PRIVATE);
+//				ObjectOutputStream irisCodesObjectOutputStream = new ObjectOutputStream(irisCodesFileOutputStream);
+//				irisCodesObjectOutputStream.writeObject(new Vector<Vector<Integer>>());
+//				irisCodesObjectOutputStream.close();
+//				irisCodesObjectOutputStream.flush();
+//
+//				FileOutputStream namesFileOutputStream = openFileOutput("names", Context.MODE_PRIVATE);
+//				ObjectOutputStream namesObjectOutputStream = new ObjectOutputStream(namesFileOutputStream);
+//				namesObjectOutputStream.writeObject(new Vector<String>());
+//				namesObjectOutputStream.close();
+//				namesObjectOutputStream.flush();
+//
+//			}
+//			catch (Exception e)
+//			{
+//				e.printStackTrace();
+//			}
+//		}
 		try
 		{
 			FileInputStream irisCodesFileInputStream = openFileInput("irisCodes");

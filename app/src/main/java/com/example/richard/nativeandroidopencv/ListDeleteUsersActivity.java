@@ -2,14 +2,18 @@ package com.example.richard.nativeandroidopencv;
 
 import android.app.Activity;
 import android.app.ListActivity;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Vector;
 
@@ -38,6 +42,17 @@ public class ListDeleteUsersActivity extends ListActivity
 		setListAdapter(adapter);
 
 		populateListView();
+
+		usersListView.setOnItemClickListener(new AdapterView.OnItemClickListener()
+		{
+			public void onItemClick(AdapterView<?> adapter, View v, int position, long id)
+			{
+				String item = (String) adapter.getItemAtPosition(position);
+				userdb.deleteUser(item);
+				saveUserDatabase();
+				finish();
+			}
+		});
 	}
 
 	public void loadUserDatabase()
@@ -62,6 +77,29 @@ public class ListDeleteUsersActivity extends ListActivity
 		}
 	}
 
+	public void saveUserDatabase()
+	{
+		try
+		{
+			FileOutputStream irisCodesFileOutputStream = openFileOutput("irisCodes", Context.MODE_PRIVATE);
+			ObjectOutputStream irisCodesObjectOutputStream = new ObjectOutputStream(irisCodesFileOutputStream);
+			irisCodesObjectOutputStream.writeObject(userdb.irisCodes);
+			irisCodesObjectOutputStream.close();
+			irisCodesObjectOutputStream.flush();
+
+			FileOutputStream namesFileOutputStream = openFileOutput("names", Context.MODE_PRIVATE);
+			ObjectOutputStream namesObjectOutputStream = new ObjectOutputStream(namesFileOutputStream);
+			namesObjectOutputStream.writeObject(userdb.names);
+			namesObjectOutputStream.close();
+			namesObjectOutputStream.flush();
+
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+
 	public void populateListView()
 	{
 		for (int i = 0;i < userdb.names.size(); i++)
@@ -71,8 +109,8 @@ public class ListDeleteUsersActivity extends ListActivity
 
 	public void buttonDeleteClicked(View view)
 	{
-		String selectedName = usersListView.getSelectedItem().toString();
-		userdb.deleteUser(selectedName);
+//		String selectedName = usersListView.getSelectedItem().toString();
+//		userdb.deleteUser(selectedName);
 		finish();
 	}
 }
