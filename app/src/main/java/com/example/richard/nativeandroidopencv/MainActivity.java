@@ -1,12 +1,15 @@
 package com.example.richard.nativeandroidopencv;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.media.Image;
 import android.nfc.Tag;
+import android.preference.DialogPreference;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -41,6 +44,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.RoundingMode;
+import java.util.Queue;
 import java.util.Vector;
 
 import static org.opencv.core.CvType.CV_8U;
@@ -50,7 +54,7 @@ import static org.opencv.core.CvType.CV_8UC4;
 public class MainActivity extends AppCompatActivity
 {
 	private static String TAG = "MainActivity";
-
+	private AlertDialog alertDialog;
 	static
 	{
 		if (OpenCVLoader.initDebug())
@@ -68,7 +72,6 @@ public class MainActivity extends AppCompatActivity
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		//getSupportActionBar().hide();
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
@@ -77,7 +80,7 @@ public class MainActivity extends AppCompatActivity
 
 	public void authenticateButtonClicked(View view)
 	{
-		Intent getCameraAuthenticateScreen = new Intent(this, CameraAuthenticateActivity.class);
+		Intent getCameraAuthenticateScreen = new Intent(MainActivity.this, CameraAuthenticateActivity.class);
 		final int result = 1;
 		startActivityForResult(getCameraAuthenticateScreen, result);
 	}

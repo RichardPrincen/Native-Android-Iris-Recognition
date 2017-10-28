@@ -3,7 +3,8 @@
 #include "Source.h"
 
 extern "C"
-void JNICALL Java_com_example_richard_nativeandroidopencv_CameraAuthenticateActivity_detectIris(JNIEnv *env, jobject instance, jlong addrInput, jlong addrOutput, jlong addrOutputNormalized, jlong addrOriginal)
+void JNICALL Java_com_example_richard_nativeandroidopencv_CameraAuthenticateActivity_detectIris(JNIEnv *env, jobject instance,
+jlong addrInput, jlong addrOutput, jlong addrOutputNormalized, jlong addrOriginal)
 {
     Mat& currentImage = *(Mat*)addrInput;
     Mat& output = *(Mat*)addrOutput;

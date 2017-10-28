@@ -1,6 +1,5 @@
 package com.example.richard.nativeandroidopencv;
 
-import android.app.Activity;
 import android.app.ListActivity;
 import android.content.Context;
 import android.os.Bundle;
@@ -17,9 +16,6 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Vector;
 
-/**
- * Created by Richard on 2017/10/13.
- */
 
 public class ListDeleteUsersActivity extends ListActivity
 {
@@ -109,8 +105,6 @@ public class ListDeleteUsersActivity extends ListActivity
 
 	public void buttonDeleteClicked(View view)
 	{
-//		String selectedName = usersListView.getSelectedItem().toString();
-//		userdb.deleteUser(selectedName);
 		finish();
 	}
 }

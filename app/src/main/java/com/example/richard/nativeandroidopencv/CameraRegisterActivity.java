@@ -26,6 +26,7 @@ import org.opencv.objdetect.CascadeClassifier;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -218,7 +219,7 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		{
 			if(resultCode == Activity.RESULT_OK)
 			{
-				int result=data.getIntExtra("result", -1);
+				int result = data.getIntExtra("result", -1);
 				if (result  == 1)
 				{
 					irisCode = NBP(JNIReturnNormalized);//LBP(JNIReturnNormalized);

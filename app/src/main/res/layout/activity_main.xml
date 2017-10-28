@@ -8,6 +8,16 @@
               android:gravity="bottom"
               tools:context="com.example.richard.nativeandroidopencv.MainActivity">
 
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:paddingBottom="100dp"
+        android:gravity="center"
+        android:text="When using the camera align the eyes in the centre of the circles and touch the screen to start the image capture."
+        android:textSize="20dp"/>
+
     <Button
         android:id="@+id/buttonAuthenticate"
         android:layout_width="match_parent"
