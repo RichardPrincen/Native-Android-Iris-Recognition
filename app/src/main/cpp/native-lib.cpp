@@ -51,8 +51,17 @@ Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original)
     {
         Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
         pupilx = cvRound(circles[i][0]), pupily = cvRound(circles[i][1]);
-        pupilRadius = cvRound(circles[i][2]);
-        irisRadius = findIrisRadius(unprocessed, center, pupilRadius); //pupilRadius*3;//
+
+        if (cvRound(circles[i][2]) < 20)
+        {
+            pupilRadius = cvRound(circles[i][2]);
+            irisRadius = findIrisRadius(unprocessed, center, pupilRadius);
+        }
+        else
+        {
+            irisRadius = cvRound(circles[i][2]);
+            pupilRadius = 15;
+        }
         circle(unprocessed, center, pupilRadius, Scalar(0), CV_FILLED);
         circle(unprocessed, center, irisRadius, Scalar(0), 2, 8, 0);
     }
