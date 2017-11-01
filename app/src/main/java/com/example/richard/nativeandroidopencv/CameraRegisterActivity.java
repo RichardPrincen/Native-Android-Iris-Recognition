@@ -49,11 +49,12 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 	private boolean IRISRECOGNITION = false;
 	private static String TAG = "RegisterActivity";
 	private static JavaCameraView jcv;
-	int [] histogramValues = {0, 1, 2, 3, 4, 6, 7, 8, 12, 14, 15, 16, 24, 28, 30, 31, 32, 48, 56, 60, 62, 63, 64, 96, 112, 120, 124, 126, 127, 128, 129, 131, 135, 143, 159, 191, 192, 193, 195, 199, 207, 223, 224, 225, 227, 231, 239, 240, 241, 243, 247, 248, 249, 251, 252, 253, 254, 255};
+	private int [] histogramValues = {0, 1, 2, 3, 4, 6, 7, 8, 12, 14, 15, 16, 24, 28, 30, 31, 32, 48, 56, 60, 62, 63, 64, 96, 112, 120, 124, 126, 127, 128, 129, 131, 135, 143, 159, 191, 192, 193, 195, 199, 207, 223, 224, 225, 227, 231, 239, 240, 241, 243, 247, 248, 249, 251, 252, 253, 254, 255};
 
 	private UserDatabase userdb;
 	private String passedName;
 
+	//Loads opencv
 	BaseLoaderCallback mLoader = new BaseLoaderCallback(this)
 	{
 		@Override
@@ -74,6 +75,7 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		}
 	};
 
+	//Loads opencv
 	static
 	{
 		if (OpenCVLoader.initDebug())
@@ -82,12 +84,14 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 			Log.i(TAG, "OpenCV load failed.");
 	}
 
+	//Loads opencv and nativelib
 	static
 	{
 		System.loadLibrary("native-lib");
 		System.loadLibrary("opencv_java3");
 	}
 
+	//Initialize the activity
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
@@ -101,11 +105,13 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		Intent activityThatCalled = getIntent();
 		passedName = activityThatCalled.getStringExtra("sendingName");
 
+		//Initialize camera view
 		jcv = (JavaCameraView) findViewById(R.id.jcv);
 		jcv.setVisibility(JavaCameraView.VISIBLE);
 		jcv.setCvCameraViewListener(this);
 		jcv.setCameraIndex(0);
 
+		//Touch listener used to start the image capture
 		jcv.setOnTouchListener(new View.OnTouchListener()
 		{
 			@Override
@@ -124,8 +130,10 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		loadUserDatabase();
 	}
 
+	//The JNI link to the C++ function
 	public native void detectIris(long addrInput, long addrOutput, long addrOutputNormalized, long addrOriginal);
 
+	//For camera view
 	@Override
 	protected void onPause()
 	{
@@ -133,6 +141,8 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		if (jcv != null)
 			jcv.disableView();
 	}
+
+	//For camera view
 	@Override
 	protected void onDestroy()
 	{
@@ -142,6 +152,8 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		JNIReturn.release();
 		JNIReturnNormalized.release();
 	}
+
+	//For camera view
 	@Override
 	protected void onResume()
 	{
@@ -156,6 +168,8 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 			OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoader);
 		}
 	}
+
+	//For camera view. Initializes Mat variables
 	@Override
 	public void onCameraViewStarted(int width, int height)
 	{
@@ -166,6 +180,8 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		JNIReturnNormalized = new Mat();
 		framesPassed = 0;
 	}
+
+	//For camera view. Releases Mat variables
 	@Override
 	public void onCameraViewStopped()
 	{
@@ -174,24 +190,29 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		eyeCircleSelection.release();
 	}
 
+	//Deals with the input frames and image capture
 	@Override
 	public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
 	{
+		//Crop the eye regions
 		int radius = (int)Math.round(frameIn.width()*0.12);
 		Point circleRCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.3);
 		Point circleLCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.7);
 		Rect eyeRegion = new Rect((int)Math.round(frameIn.width()*0.25-radius), (int)Math.round(frameIn.height()*0.3-radius), radius*2, radius*2);
 
-
+		//Converts input frame to Mat
 		frameIn = inputFrame.rgba();
 		frameIn.copyTo(frameOut);
 		eyeCircleSelection = frameIn.submat(eyeRegion);
+
+		//Draw the onscreen circles
 		Imgproc.circle(frameOut, circleRCenter, radius, new Scalar(255, 0, 0), 5);
 		Imgproc.circle(frameOut, circleLCenter, radius, new Scalar(255, 0, 0), 5);
 
 		if (IRISRECOGNITION == false)
 			return frameOut;
 
+		//Image capture
 		if (framesPassed == 35)
 		{
 			framesPassed = 0;
@@ -211,6 +232,7 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		return frameOut;
 	}
 
+	//Used to determine the result from the iris and pupil location
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
@@ -222,7 +244,10 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 				int result = data.getIntExtra("result", -1);
 				if (result  == 1)
 				{
-					irisCode = NBP(JNIReturnNormalized);//LBP(JNIReturnNormalized);
+					//Create the iris code
+					irisCode = NBP(JNIReturnNormalized);
+
+					//Add user to the database
 					userdb.addUser(irisCode, passedName);
 					saveUserDatabase();
 					Intent returnToMain = new Intent();
@@ -233,8 +258,10 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		}
 	}
 
-	Vector<Integer> LBP(Mat input)
+	//LBP feature extraction method
+	public Vector<Integer> LBP(Mat input)
 	{
+		//Calculate pixel vectors
 		Vector<Integer> outputHist = new Vector<Integer>();
 		outputHist.setSize(59);
 		Collections.fill(outputHist, 0);
@@ -330,6 +357,7 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 				else
 					binaryCode.add(0);
 
+				//Check if vector is uniform
 				if (checkUniform(binaryCode))
 				{
 					for (int x = 0; x < 59; x++)
@@ -352,7 +380,8 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		return outputHist;
 	}
 
-	boolean checkUniform(Vector<Integer> binaryCode)
+	//Used in the LBP to check if a pixel vector is uniform
+	public boolean checkUniform(Vector<Integer> binaryCode)
 	{
 		int transitionCount = 0;
 		for (int i = 1; i < 8; i++)
@@ -365,8 +394,10 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		return true;
 	}
 
-	Vector<Integer> NBP(Mat input)
+	//NBP feature extraction method
+	public Vector<Integer> NBP(Mat input)
 	{
+		//Create NBP image
 		Mat NBPimage = new Mat(input.rows(), input.cols(), CV_8U);
 		Vector<Integer> NBPcode = new Vector<>();
 
@@ -426,6 +457,7 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 			}
 		}
 
+		//Compute window means
 		Vector<Vector<Integer>> means = new Vector<>();
 		Vector<Integer> rowmeans;
 		for (int i = 0; i < 6; i++)
@@ -446,6 +478,7 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 			means.add(rowmeans);
 		}
 
+		//Compute feature vector
 		for (int i = 0; i < 6; i++)
 		{
 			for (int j = 0; j < 10; j++)
@@ -459,6 +492,7 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		return NBPcode;
 	}
 
+	//Saves the userdb object data to file
 	public void saveUserDatabase()
 	{
 		try
@@ -482,6 +516,7 @@ public class CameraRegisterActivity extends Activity implements CameraBridgeView
 		}
 	}
 
+	//Loads data into the userdb object from file
 	public void loadUserDatabase()
 	{
 //		File checkFile = new File("irisCodes");

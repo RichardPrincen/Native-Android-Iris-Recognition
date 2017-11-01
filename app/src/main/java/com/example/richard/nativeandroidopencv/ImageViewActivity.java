@@ -17,6 +17,8 @@ import org.opencv.imgproc.Imgproc;
 public class ImageViewActivity extends Activity
 {
 	private Mat imageViewContent;
+
+	//Initialize the activity
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
@@ -25,11 +27,13 @@ public class ImageViewActivity extends Activity
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		setContentView(R.layout.activity_image_display);
 
+		//Receive the passed image from the previous activity
 		Intent activityThatCalled = getIntent();
 		Bitmap passed = (Bitmap) activityThatCalled.getParcelableExtra("sendingMat");
 		imageViewContent = new Mat();
 		Utils.bitmapToMat(passed, imageViewContent);
 
+		//Rotate the image
 		Point pt = new Point(imageViewContent.rows()/2, imageViewContent.cols()/2);
 		Mat r = Imgproc.getRotationMatrix2D(pt, -90, 1.0);
 		Imgproc.warpAffine(imageViewContent, imageViewContent, r, new Size(imageViewContent.rows(), imageViewContent.cols()));
@@ -37,6 +41,7 @@ public class ImageViewActivity extends Activity
 		changeImageView(imageViewContent);
 	}
 
+	//Set the image view to the image passed
 	public void changeImageView(Mat input)
 	{
 		final Bitmap bm = Bitmap.createBitmap(input.cols(), input.rows(),Bitmap.Config.ARGB_8888);

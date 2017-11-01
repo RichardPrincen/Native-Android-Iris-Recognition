@@ -21,9 +21,12 @@ public class ListDeleteUsersActivity extends ListActivity
 {
 	private UserDatabase userdb;
 	private ListView usersListView;
-	final ArrayList<String> namesList = new ArrayList<>();
-	ArrayAdapter<String> adapter;
 
+	//These two are used to take the vector of names and populate the listview
+	private final ArrayList<String> namesList = new ArrayList<>();
+	private ArrayAdapter<String> adapter;
+
+	//Create the activity and initialize the list view
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
@@ -39,6 +42,7 @@ public class ListDeleteUsersActivity extends ListActivity
 
 		populateListView();
 
+		//Delete a user on touch of their username
 		usersListView.setOnItemClickListener(new AdapterView.OnItemClickListener()
 		{
 			public void onItemClick(AdapterView<?> adapter, View v, int position, long id)
@@ -51,6 +55,7 @@ public class ListDeleteUsersActivity extends ListActivity
 		});
 	}
 
+	//Load the data from file into the userdb object
 	public void loadUserDatabase()
 	{
 		try
@@ -73,6 +78,7 @@ public class ListDeleteUsersActivity extends ListActivity
 		}
 	}
 
+	//Save the data in the userdb object to file
 	public void saveUserDatabase()
 	{
 		try
@@ -96,6 +102,7 @@ public class ListDeleteUsersActivity extends ListActivity
 		}
 	}
 
+	//Fill the listview
 	public void populateListView()
 	{
 		for (int i = 0;i < userdb.names.size(); i++)
@@ -103,6 +110,7 @@ public class ListDeleteUsersActivity extends ListActivity
 		adapter.notifyDataSetChanged();
 	}
 
+	//Changed to done button. just goes back to main menu
 	public void buttonDeleteClicked(View view)
 	{
 		finish();

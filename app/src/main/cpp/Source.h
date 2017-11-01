@@ -19,10 +19,7 @@ Mat findAndExtractIris(Mat input, Mat unprocessed, Mat original);
 int findIrisRadius(Mat input , Point startPoint, int radius);
 Mat fillHoles(Mat input);
 Mat normalize(Mat input);
-vector<int> LBP(Mat input);
-bool checkUniform(vector<int> binaryCode);
-double hammingDistance(vector<int> savedCode, vector<int> inputCode);
-double chiSquared(vector<int> hist1, vector<int> hist2);
+vector<int> CHT(Mat input, int minRadius, int maxRadius);
 
 /** Global variables */
 string window = "Output";

@@ -1,25 +1,14 @@
 package com.example.richard.nativeandroidopencv;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
-import android.media.Image;
-import android.nfc.Tag;
-import android.os.Environment;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -27,33 +16,18 @@ import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.objdetect.CascadeClassifier;
-import org.opencv.objdetect.Objdetect;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.math.RoundingMode;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Vector;
 
 import static org.opencv.core.CvType.CV_8U;
-import static org.opencv.core.CvType.CV_8UC1;
-import static org.opencv.core.CvType.CV_8UC4;
 
 public class CameraAuthenticateActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2
 {
@@ -71,6 +45,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 
 	private UserDatabase userdb;
 
+	//Loads opencv
 	BaseLoaderCallback mLoader = new BaseLoaderCallback(this)
 	{
 		@Override
@@ -91,6 +66,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		}
 	};
 
+	//Loads opencv
 	static
 	{
 		if (OpenCVLoader.initDebug())
@@ -99,12 +75,14 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 			Log.i(TAG, "OpenCV load failed.");
 	}
 
+	//Loads opencv and nativelib
 	static
 	{
 		System.loadLibrary("native-lib");
 		System.loadLibrary("opencv_java3");
 	}
 
+	//Initializes the activity
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
@@ -115,11 +93,13 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 		setContentView(R.layout.activity_camera_view_authenticate);
 
+		//Initialize camera view
 		jcv = (JavaCameraView) findViewById(R.id.jcv);
 		jcv.setVisibility(JavaCameraView.VISIBLE);
 		jcv.setCvCameraViewListener(this);
 		jcv.setCameraIndex(0);
 
+		//Touch listener used to start the image capture
 		jcv.setOnTouchListener(new View.OnTouchListener()
 		{
 			@Override
@@ -138,8 +118,10 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		loadUserDatabase();
 	}
 
+	//The JNI link to the C++ function
 	public native void detectIris(long addrInput, long addrOutput, long addrOutputNormalized, long addrOriginal);
 
+	//For camera view
 	@Override
 	protected void onPause()
 	{
@@ -147,6 +129,8 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		if (jcv != null)
 			jcv.disableView();
 	}
+
+	//For camera view
 	@Override
 	protected void onDestroy()
 	{
@@ -156,6 +140,8 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		JNIReturn.release();
 		JNIReturnNormalized.release();
 	}
+
+	//For camera view
 	@Override
 	protected void onResume()
 	{
@@ -170,6 +156,8 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 			OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoader);
 		}
 	}
+
+	//For camera view. Initializes Mat variables
 	@Override
 	public void onCameraViewStarted(int width, int height)
 	{
@@ -180,6 +168,8 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		JNIReturnNormalized = new Mat();
 		framesPassed = 0;
 	}
+
+	//For camera view. Releases Mat variables
 	@Override
 	public void onCameraViewStopped()
 	{
@@ -189,30 +179,34 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		//JNIReturn.release();
 	}
 
+	//Deals with the input frames and image capture
 	@Override
 	public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
 	{
+		//Crop the eye regions
 		int radius = (int)Math.round(frameIn.width()*0.12);
 		Point circleRCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.3);
 		Point circleLCenter = new Point(frameIn.width()*0.25, frameIn.height()*0.7);
 		Rect eyeRegion = new Rect((int)Math.round(frameIn.width()*0.25-radius), (int)Math.round(frameIn.height()*0.3-radius), radius*2, radius*2);
 
-
+		//Converts input frame to Mat
 		frameIn = inputFrame.rgba();
 		frameIn.copyTo(frameOut);
 		eyeCircleSelection = frameIn.submat(eyeRegion);
+
+		//Draw the onscreen circles
 		Imgproc.circle(frameOut, circleRCenter, radius, new Scalar(255, 0, 0), 5);
 		Imgproc.circle(frameOut, circleLCenter, radius, new Scalar(255, 0, 0), 5);
 
 		if (IRISRECOGNITION == false)
 			return frameOut;
 
+		//Image capture
 		if (framesPassed == 35)
 		{
 			framesPassed = 0;
 			jcv.flashOff();
 			IRISRECOGNITION = false;
-			//eyeCircleSelection = findEye(eyeCircleSelection);
 			detectIris(eyeCircleSelection.getNativeObjAddr(),JNIReturn.getNativeObjAddr(), JNIReturnNormalized.getNativeObjAddr(), frameIn.getNativeObjAddr());
 
 			Intent getImageViewScreen = new Intent(this, ImageViewActivity.class);
@@ -226,6 +220,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		return frameOut;
 	}
 
+	//Used to determine the result from the iris and pupil location
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
@@ -235,23 +230,27 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 				int result=data.getIntExtra("result", -1);
 				if (result  == 1)
 				{
-					irisCodeInput = NBP(JNIReturnNormalized);//LBP(JNIReturnNormalized);
-					double chiSquaredDistance;
+					//Create the iris code
+					irisCodeInput = NBP(JNIReturnNormalized);
+					double hammingDistance;
 					boolean MatchFound = false;
 					for (int i = 0;i < userdb.irisCodes.size();i++)
 					{
-						chiSquaredDistance = hammingDistance(irisCodeInput, userdb.irisCodes.elementAt(i));//chiSquared(irisCodeInput, userdb.irisCodes.elementAt(i));
-						if (chiSquaredDistance < 0.35)
+						//compute hamming distance
+						hammingDistance = hammingDistance(irisCodeInput, userdb.irisCodes.elementAt(i));
+						//Check for match
+						if (hammingDistance < 0.35)
 						{
 							MatchFound = true;
 							Intent getMatchResult = new Intent(this, MatchResultActivity.class);
 							final int resultNew = 1;
-							getMatchResult.putExtra("sendingDistance", chiSquaredDistance);
+							getMatchResult.putExtra("sendingDistance",hammingDistance);
 							getMatchResult.putExtra("sendingMatchedName", userdb.names.elementAt(i));
 							startActivityForResult(getMatchResult, resultNew);
 							break;
 						}
 					}
+					//If no match send result
 					if (!MatchFound)
 					{
 						Intent getMatchResult = new Intent(this, MatchResultActivity.class);
@@ -264,8 +263,10 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		}
 	}
 
-	Vector<Integer> LBP(Mat input)
+	//LBP feature extraction method
+	public Vector<Integer> LBP(Mat input)
 	{
+		//Calculate pixel vectors
 		Vector<Integer> outputHist = new Vector<Integer>();
 		outputHist.setSize(59);
 		Collections.fill(outputHist, 0);
@@ -361,6 +362,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 				else
 					binaryCode.add(0);
 
+				//Check if vector is uniform
 				if (checkUniform(binaryCode))
 				{
 					for (int x = 0; x < 59; x++)
@@ -383,7 +385,8 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		return outputHist;
 	}
 
-	boolean checkUniform(Vector<Integer> binaryCode)
+	//Used in the LBP to check if a pixel vector is uniform
+	public boolean checkUniform(Vector<Integer> binaryCode)
 	{
 		int transitionCount = 0;
 		for (int i = 1; i < 8; i++)
@@ -396,12 +399,13 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		return true;
 	}
 
+	//Used to compare LBP feature histograms
 	public double chiSquared(Vector<Integer> hist1, Vector<Integer> hist2)
 	{
 		double[] normalizedHist1 = new double[59];
 		double[] normalizedHist2 = new double[59];
-		;
 
+		//Normalize the histogram
 		for (int i = 0; i < 58; i++)
 		{
 			normalizedHist1[i] = (double) hist1.elementAt(i) / hist1.elementAt(58);
@@ -411,6 +415,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		normalizedHist1[58] = 1.0;
 		normalizedHist2[58] = 1.0;
 
+		//Compute the distance
 		double chiSquaredValue = 0.0;
 		for (int i = 1; i < 59; i++)
 		{
@@ -422,8 +427,11 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		return chiSquaredValue * 10;
 	}
 
-	Vector<Integer> NBP(Mat input)
+	//NBP feature extraction method
+	public Vector<Integer> NBP(Mat input)
 	{
+
+		//Create NBP image
 		Mat NBPimage = new Mat(input.rows(), input.cols(), CV_8U);
 		Vector<Integer> NBPcode = new Vector<>();
 
@@ -483,6 +491,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 			}
 		}
 
+		//Compute window means
 		Vector<Vector<Integer>> means = new Vector<>();
 		Vector<Integer> rowmeans;
 		for (int i = 0; i < 6; i++)
@@ -503,6 +512,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 			means.add(rowmeans);
 		}
 
+		//Compute feature vector
 		for (int i = 0; i < 6; i++)
 		{
 			for (int j = 0; j < 10; j++)
@@ -516,7 +526,8 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		return NBPcode;
 	}
 
-	double hammingDistance(Vector<Integer> savedCode, Vector<Integer> inputCode)
+	//Used to compare NBP feature vectors
+	public double hammingDistance(Vector<Integer> savedCode, Vector<Integer> inputCode)
 	{
 		int currentDistance = 0;
 		int averageDistance = 0;
@@ -534,6 +545,7 @@ public class CameraAuthenticateActivity extends Activity implements CameraBridge
 		return 1.0*averageDistance / inputCode.size();
 	}
 
+	//Loads data into the userdb object from file
 	public void loadUserDatabase()
 	{
 		try

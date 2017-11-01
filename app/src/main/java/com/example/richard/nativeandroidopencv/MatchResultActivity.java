@@ -7,9 +7,9 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
-
 public class MatchResultActivity extends Activity
 {
+	//Initialize the activity
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
@@ -20,6 +20,7 @@ public class MatchResultActivity extends Activity
 
 		TextView tvMatch = (TextView) findViewById(R.id.matchText);
 
+		//Checks whether the previous activity sent a match or not and change the text values accordingly
 		Intent activityThatCalled = getIntent();
 		double passed = activityThatCalled.getDoubleExtra("sendingDistance",-1);
 		if (passed == -1)
@@ -33,6 +34,7 @@ public class MatchResultActivity extends Activity
 		}
 	}
 
+	//Goes back to the camera
 	public void buttonOKClicked(View view)
 	{
 		Intent returnToCameraView = new Intent();

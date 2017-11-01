@@ -7,12 +7,9 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
 
-/**
- * Created by Richard on 2017/10/13.
- */
-
 public class InputNameRegisterActivity extends Activity
 {
+	//Initialize the activity
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
@@ -22,6 +19,7 @@ public class InputNameRegisterActivity extends Activity
 		setContentView(R.layout.activity_register_name);
 	}
 
+	//Pulls the name from the input field and sends it to the camera register activity
 	public void buttonOKClicked(View view)
 	{
 		Intent getCameraRegisterScreen = new Intent(this, CameraRegisterActivity.class);
